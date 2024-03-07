@@ -1,0 +1,406 @@
+{
+  "address": "0xC221f00773737492A8c3c7bE091896E03EA152B8",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "IncreOwnable_NotOwner",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "IncreOwnable_NotPendingOwner",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "IncreOwnable_TransferZeroAddress",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "Oracle_AggregatorZeroAddress",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "Oracle_AssetZeroAddress",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "Oracle_IncompleteRound",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "Oracle_IntegerConversion",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "Oracle_UnsupportedAsset",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        }
+      ],
+      "name": "TransferOwner",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        }
+      ],
+      "name": "TransferOwnerClaim",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "assetToChainLinkAggregator",
+      "outputs": [
+        {
+          "internalType": "contract AggregatorV3Interface",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "assetToFixedPrice",
+      "outputs": [
+        {
+          "internalType": "int256",
+          "name": "",
+          "type": "int256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "claimOwner",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        }
+      ],
+      "name": "getPrice",
+      "outputs": [
+        {
+          "internalType": "int256",
+          "name": "",
+          "type": "int256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pendingOwner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        },
+        {
+          "internalType": "int256",
+          "name": "fixedPrice",
+          "type": "int256"
+        }
+      ],
+      "name": "setFixedPrice",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "asset",
+          "type": "address"
+        },
+        {
+          "internalType": "contract AggregatorV3Interface",
+          "name": "aggregator",
+          "type": "address"
+        }
+      ],
+      "name": "setOracle",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "direct",
+          "type": "bool"
+        }
+      ],
+      "name": "transferOwner",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x92ed05dbfc0ed3edaa09ea9e4f915cf14e205b998a447d7d064282929feba897",
+  "receipt": {
+    "to": null,
+    "from": "0x69C7c048e7C286B0a8Bcf7cD7620E71Ef7569421",
+    "contractAddress": "0xC221f00773737492A8c3c7bE091896E03EA152B8",
+    "transactionIndex": 0,
+    "gasUsed": "612178",
+    "logsBloom": "0x00000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000100000000800000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000004000000000000000000000000000000000000800000000000000000000000000000000000000000000004000040000000000000000020000000000000000000020000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x14ec57076002bc46ac9409e66f38f292fe5eeae097bc1bee6175b0a88b77cd6e",
+    "transactionHash": "0x92ed05dbfc0ed3edaa09ea9e4f915cf14e205b998a447d7d064282929feba897",
+    "logs": [
+      {
+        "transactionIndex": 0,
+        "blockNumber": 14861818,
+        "transactionHash": "0x92ed05dbfc0ed3edaa09ea9e4f915cf14e205b998a447d7d064282929feba897",
+        "address": "0xC221f00773737492A8c3c7bE091896E03EA152B8",
+        "topics": [
+          "0x5bb496b3f951b55d3a1d8e479725a4d25bdc7644fc355f0b71c540354820a1c5",
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "0x00000000000000000000000069c7c048e7c286b0a8bcf7cd7620e71ef7569421"
+        ],
+        "data": "0x",
+        "logIndex": 0,
+        "blockHash": "0x14ec57076002bc46ac9409e66f38f292fe5eeae097bc1bee6175b0a88b77cd6e"
+      }
+    ],
+    "blockNumber": 14861818,
+    "cumulativeGasUsed": "612178",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [],
+  "solcInputHash": "0e343dabaf86f1433359bcaf3343f5ad",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.4+commit.c7e474f2\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"IncreOwnable_NotOwner\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"IncreOwnable_NotPendingOwner\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"IncreOwnable_TransferZeroAddress\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"Oracle_AggregatorZeroAddress\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"Oracle_AssetZeroAddress\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"Oracle_IncompleteRound\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"Oracle_IntegerConversion\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"Oracle_UnsupportedAsset\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"}],\"name\":\"TransferOwner\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"}],\"name\":\"TransferOwnerClaim\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"assetToChainLinkAggregator\",\"outputs\":[{\"internalType\":\"contract AggregatorV3Interface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"assetToFixedPrice\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"claimOwner\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"getPrice\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pendingOwner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"fixedPrice\",\"type\":\"int256\"}],\"name\":\"setFixedPrice\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"contract AggregatorV3Interface\",\"name\":\"aggregator\",\"type\":\"address\"}],\"name\":\"setOracle\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"direct\",\"type\":\"bool\"}],\"name\":\"transferOwner\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"transferOwner(address,bool)\":{\"params\":{\"direct\":\"If 'true', ownership is directly transferred.\",\"recipient\":\"Account granted `owner` access control.\"}}},\"version\":1},\"userdoc\":{\"errors\":{\"IncreOwnable_NotOwner()\":[{\"notice\":\"Emitted when the sender is not the owner\"}],\"IncreOwnable_NotPendingOwner()\":[{\"notice\":\"Emitted when the sender is not the pending owner\"}],\"IncreOwnable_TransferZeroAddress()\":[{\"notice\":\"Emitted when the proposed owner is equal to the zero address\"}],\"Oracle_AggregatorZeroAddress()\":[{\"notice\":\"Emitted when the proposed aggregator address is equal to the zero address\"}],\"Oracle_AssetZeroAddress()\":[{\"notice\":\"Emitted when the proposed asset address is equal to the zero address\"}],\"Oracle_IncompleteRound()\":[{\"notice\":\"Emitted when the latest round is incomplete\"}],\"Oracle_IntegerConversion()\":[{\"notice\":\"Emitted when the latest round's price is invalid\"}],\"Oracle_UnsupportedAsset()\":[{\"notice\":\"Emitted when owner tries to set fixed price to an unsupported asset\"}]},\"kind\":\"user\",\"methods\":{\"claimOwner()\":{\"notice\":\"`pendingOwner` can claim `owner` account.\"},\"getPrice(address)\":{\"notice\":\"Get latest chainlink price, except if a fixed price is defined for this asset\"},\"setFixedPrice(address,int256)\":{\"notice\":\"A safety mechanism, to be used only if the chainlink get compromised or stops working\"},\"setOracle(address,address)\":{\"notice\":\"Add or update an oracle address\"},\"transferOwner(address,bool)\":{\"notice\":\"Transfer `owner` account.\"}},\"notice\":\"Oracle contract relying on Chainlink for price\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/Oracle.sol\":\"Oracle\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.0;\\n\\ninterface AggregatorV3Interface {\\n\\n  function decimals()\\n    external\\n    view\\n    returns (\\n      uint8\\n    );\\n\\n  function description()\\n    external\\n    view\\n    returns (\\n      string memory\\n    );\\n\\n  function version()\\n    external\\n    view\\n    returns (\\n      uint256\\n    );\\n\\n  // getRoundData and latestRoundData should both raise \\\"No data present\\\"\\n  // if they do not have data to report, instead of returning unset values\\n  // which could be misinterpreted as actual reported values.\\n  function getRoundData(\\n    uint80 _roundId\\n  )\\n    external\\n    view\\n    returns (\\n      uint80 roundId,\\n      int256 answer,\\n      uint256 startedAt,\\n      uint256 updatedAt,\\n      uint80 answeredInRound\\n    );\\n\\n  function latestRoundData()\\n    external\\n    view\\n    returns (\\n      uint80 roundId,\\n      int256 answer,\\n      uint256 startedAt,\\n      uint256 updatedAt,\\n      uint80 answeredInRound\\n    );\\n\\n}\\n\",\"keccak256\":\"0xe6f5ac8c47f3b9b6135051efb9216f9ba5b312a6ecc20209b4f66a780443c328\",\"license\":\"MIT\"},\"contracts/Oracle.sol\":{\"content\":\"// SPDX-License-Identifier: AGPL-3.0\\npragma solidity 0.8.4;\\n\\n// contracts\\nimport {IncreOwnable} from \\\"./utils/IncreOwnable.sol\\\";\\n\\n// interfaces\\nimport {IOracle} from \\\"./interfaces/IOracle.sol\\\";\\nimport {AggregatorV3Interface} from \\\"@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol\\\";\\n\\n/// @notice Oracle contract relying on Chainlink for price\\ncontract Oracle is IOracle, IncreOwnable {\\n    uint8 constant PROTOCOL_PRECISION = 18;\\n\\n    mapping(address => AggregatorV3Interface) public assetToChainLinkAggregator;\\n    mapping(address => int256) public assetToFixedPrice;\\n\\n    /* ****************** */\\n    /*     Governance     */\\n    /* ****************** */\\n\\n    /// @notice Add or update an oracle address\\n    function setOracle(address asset, AggregatorV3Interface aggregator) external override onlyOwner {\\n        if (address(asset) == address(0)) revert Oracle_AssetZeroAddress();\\n        if (address(aggregator) == address(0)) revert Oracle_AggregatorZeroAddress();\\n\\n        assetToChainLinkAggregator[asset] = aggregator;\\n    }\\n\\n    /// @notice A safety mechanism, to be used only if the chainlink get compromised or stops working\\n    function setFixedPrice(address asset, int256 fixedPrice) external override onlyOwner {\\n        if (address(assetToChainLinkAggregator[asset]) == address(0)) revert Oracle_UnsupportedAsset();\\n\\n        assetToFixedPrice[asset] = fixedPrice;\\n    }\\n\\n    /* ****************** */\\n    /*   Global getter    */\\n    /* ****************** */\\n\\n    /// @notice Get latest chainlink price, except if a fixed price is defined for this asset\\n    function getPrice(address asset) external view override returns (int256) {\\n        if (assetToFixedPrice[asset] != 0) {\\n            return assetToFixedPrice[asset];\\n        }\\n\\n        return _getChainlinkPrice(assetToChainLinkAggregator[asset]);\\n    }\\n\\n    /* ****************** */\\n    /* internal getter    */\\n    /* ****************** */\\n\\n    /// @notice Get latest chainlink price\\n    function _getChainlinkPrice(AggregatorV3Interface aggregator) internal view returns (int256) {\\n        (, int256 price, , uint256 timeStamp, ) = aggregator.latestRoundData();\\n\\n        // If the round is not complete yet, timestamp is 0\\n        if (timeStamp <= 0) revert Oracle_IncompleteRound();\\n        if (price <= 0) revert Oracle_IntegerConversion();\\n\\n        return _scalePrice(price, aggregator.decimals());\\n    }\\n\\n    /// @notice Scale price up or down depending on the precision of the asset\\n    function _scalePrice(int256 price, uint8 assetPrecision) internal pure returns (int256) {\\n        if (assetPrecision < PROTOCOL_PRECISION) {\\n            return price * int256(10**uint256(PROTOCOL_PRECISION - assetPrecision));\\n        } else if (assetPrecision > PROTOCOL_PRECISION) {\\n            return price / int256(10**uint256(assetPrecision - PROTOCOL_PRECISION));\\n        }\\n\\n        return price;\\n    }\\n}\\n\",\"keccak256\":\"0x9572e8ebe8f6ea557d703c148dd618be6b4382276a6c008becb854f1506b3ca4\",\"license\":\"AGPL-3.0\"},\"contracts/interfaces/IOracle.sol\":{\"content\":\"// SPDX-License-Identifier: AGPL-3.0\\npragma solidity 0.8.4;\\n\\n// interfaces\\nimport {AggregatorV3Interface} from \\\"@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol\\\";\\n\\n/// @notice Oracle interface created to ease oracle contract switch\\ninterface IOracle {\\n    /* ****************** */\\n    /*     Errors         */\\n    /* ****************** */\\n\\n    /// @notice Emitted when the latest round is incomplete\\n    error Oracle_IncompleteRound();\\n\\n    /// @notice Emitted when the latest round's price is invalid\\n    error Oracle_IntegerConversion();\\n\\n    /// @notice Emitted when the proposed asset address is equal to the zero address\\n    error Oracle_AssetZeroAddress();\\n\\n    /// @notice Emitted when the proposed aggregator address is equal to the zero address\\n    error Oracle_AggregatorZeroAddress();\\n\\n    /// @notice Emitted when owner tries to set fixed price to an unsupported asset\\n    error Oracle_UnsupportedAsset();\\n\\n    /* ****************** */\\n    /*     Viewer         */\\n    /* ****************** */\\n\\n    function getPrice(address asset) external view returns (int256);\\n\\n    /* ****************** */\\n    /*  State modifying   */\\n    /* ****************** */\\n\\n    function setOracle(address asset, AggregatorV3Interface aggregator) external;\\n\\n    function setFixedPrice(address asset, int256 fixedPrice) external;\\n}\\n\",\"keccak256\":\"0xaa06ea6ca832e0b236b11751c4e1a34b1d6193967a3b927a32dac56d21694184\",\"license\":\"AGPL-3.0\"},\"contracts/utils/IncreOwnable.sol\":{\"content\":\"// SPDX-License-Identifier: AGPL-3.0\\npragma solidity 0.8.4;\\n\\n/// @notice Emitted when the sender is not the owner\\nerror IncreOwnable_NotOwner();\\n\\n/// @notice Emitted when the sender is not the pending owner\\nerror IncreOwnable_NotPendingOwner();\\n\\n/// @notice Emitted when the proposed owner is equal to the zero address\\nerror IncreOwnable_TransferZeroAddress();\\n\\n/// @notice Increment access control contract.\\n/// @author Adapted from https://github.com/boringcrypto/BoringSolidity/blob/master/contracts/BoringOwnable.sol, License-Identifier: MIT.\\n/// @author Adapted from https://github.com/sushiswap/trident/blob/master/contracts/utils/TridentOwnable.sol, License-Identifier: GPL-3.0-or-later\\ncontract IncreOwnable {\\n    address public owner;\\n    address public pendingOwner;\\n\\n    event TransferOwner(address indexed sender, address indexed recipient);\\n    event TransferOwnerClaim(address indexed sender, address indexed recipient);\\n\\n    /// @notice Initialize and grant deployer account (`msg.sender`) `owner` access role.\\n    constructor() {\\n        owner = msg.sender;\\n        emit TransferOwner(address(0), msg.sender);\\n    }\\n\\n    /// @notice Access control modifier that requires modified function to be called by `owner` account.\\n    modifier onlyOwner() {\\n        if (msg.sender != owner) revert IncreOwnable_NotOwner();\\n        _;\\n    }\\n\\n    /// @notice `pendingOwner` can claim `owner` account.\\n    function claimOwner() external {\\n        if (msg.sender != pendingOwner) revert IncreOwnable_NotPendingOwner();\\n        emit TransferOwner(owner, msg.sender);\\n        owner = msg.sender;\\n        pendingOwner = address(0);\\n    }\\n\\n    /// @notice Transfer `owner` account.\\n    /// @param recipient Account granted `owner` access control.\\n    /// @param direct If 'true', ownership is directly transferred.\\n    function transferOwner(address recipient, bool direct) external onlyOwner {\\n        if (recipient == address(0)) revert IncreOwnable_TransferZeroAddress();\\n        if (direct) {\\n            owner = recipient;\\n            emit TransferOwner(msg.sender, recipient);\\n        } else {\\n            pendingOwner = recipient;\\n            emit TransferOwnerClaim(msg.sender, recipient);\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0xd98c075ae1e6304b4a88e94854a4f7f93a795ade40e70252e44697d72abe2d0e\",\"license\":\"AGPL-3.0\"}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b50600080546001600160a01b0319163390811782556040519091907f5bb496b3f951b55d3a1d8e479725a4d25bdc7644fc355f0b71c540354820a1c5908290a36109aa8061005f6000396000f3fe608060405234801561001057600080fd5b50600436106100935760003560e01c80635c38eb3a116100665780635c38eb3a146101295780638da5cb5b1461013c578063a8c00a241461014f578063cf81afaa14610162578063e30c39781461017557600080fd5b80633230fb0c146100985780633bd1adec146100de57806340e6e824146100e857806341976e0914610116575b600080fd5b6100c16100a6366004610654565b6002602052600090815260409020546001600160a01b031681565b6040516001600160a01b0390911681526020015b60405180910390f35b6100e6610188565b005b6101086100f6366004610654565b60036020526000908152604090205481565b6040519081526020016100d5565b610108610124366004610654565b61020b565b6100e66101373660046106b3565b61026f565b6000546100c1906001600160a01b031681565b6100e661015d3660046106e0565b610316565b6100e6610170366004610677565b610395565b6001546100c1906001600160a01b031681565b6001546001600160a01b031633146101b357604051636d0c59cb60e01b815260040160405180910390fd5b6000805460405133926001600160a01b03909216917f5bb496b3f951b55d3a1d8e479725a4d25bdc7644fc355f0b71c540354820a1c591a3600080546001600160a01b03199081163317909155600180549091169055565b6001600160a01b0381166000908152600360205260408120541561024557506001600160a01b031660009081526003602052604090205490565b6001600160a01b038083166000908152600260205260409020546102699116610486565b92915050565b6000546001600160a01b0316331461029a57604051637d369bab60e11b815260040160405180910390fd5b6001600160a01b0382166102c157604051637731232360e11b815260040160405180910390fd5b6001600160a01b0381166102e85760405163f9db361d60e01b815260040160405180910390fd5b6001600160a01b03918216600090815260026020526040902080546001600160a01b03191691909216179055565b6000546001600160a01b0316331461034157604051637d369bab60e11b815260040160405180910390fd5b6001600160a01b0382811660009081526002602052604090205416610379576040516324dd56ad60e21b815260040160405180910390fd5b6001600160a01b03909116600090815260036020526040902055565b6000546001600160a01b031633146103c057604051637d369bab60e11b815260040160405180910390fd5b6001600160a01b0382166103e75760405163755a183760e01b815260040160405180910390fd5b801561043957600080546001600160a01b0319166001600160a01b0384169081178255604051909133917f5bb496b3f951b55d3a1d8e479725a4d25bdc7644fc355f0b71c540354820a1c59190a35050565b600180546001600160a01b0319166001600160a01b03841690811790915560405133907f87f5c8846f4c51400fa448cfb84edcec5cc0f333b6d20a5b903e050823dcb66790600090a35050565b6000806000836001600160a01b031663feaf968c6040518163ffffffff1660e01b815260040160a06040518083038186803b1580156104c457600080fd5b505afa1580156104d8573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104fc919061070b565b509350509250506000811161052457604051631b3927ed60e21b815260040160405180910390fd5b600082136105455760405163110eb1eb60e31b815260040160405180910390fd5b6105bf82856001600160a01b031663313ce5676040518163ffffffff1660e01b815260040160206040518083038186803b15801561058257600080fd5b505afa158015610596573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906105ba919061075a565b6105c7565b949350505050565b6000601260ff831610156105ff576105e0826012610923565b6105ee9060ff16600a6107f8565b6105f890846108a0565b9050610269565b601260ff8316111561062e57610616601283610923565b6106249060ff16600a6107f8565b6105f8908461077b565b5090919050565b805169ffffffffffffffffffff8116811461064f57600080fd5b919050565b600060208284031215610665578081fd5b81356106708161095c565b9392505050565b60008060408385031215610689578081fd5b82356106948161095c565b9150602083013580151581146106a8578182fd5b809150509250929050565b600080604083850312156106c5578182fd5b82356106d08161095c565b915060208301356106a88161095c565b600080604083850312156106f2578182fd5b82356106fd8161095c565b946020939093013593505050565b600080600080600060a08688031215610722578081fd5b61072b86610635565b945060208601519350604086015192506060860151915061074e60808701610635565b90509295509295909350565b60006020828403121561076b578081fd5b815160ff81168114610670578182fd5b60008261079657634e487b7160e01b81526012600452602481fd5b600160ff1b8214600019841416156107b0576107b0610946565b500590565b600181815b808511156107f05781600019048211156107d6576107d6610946565b808516156107e357918102915b93841c93908002906107ba565b509250929050565b6000610670838360008261080e57506001610269565b8161081b57506000610269565b8160018114610831576002811461083b57610857565b6001915050610269565b60ff84111561084c5761084c610946565b50506001821b610269565b5060208310610133831016604e8410600b841016171561087a575081810a610269565b61088483836107b5565b806000190482111561089857610898610946565b029392505050565b60006001600160ff1b03818413828413808216868404861116156108c6576108c6610946565b600160ff1b848712828116878305891216156108e4576108e4610946565b8587129250878205871284841616156108ff576108ff610946565b8785058712818416161561091557610915610946565b505050929093029392505050565b600060ff821660ff84168082101561093d5761093d610946565b90039392505050565b634e487b7160e01b600052601160045260246000fd5b6001600160a01b038116811461097157600080fd5b5056fea264697066735822122088906f36316b63839d27ee7f62caf5952e4ef358450bb84e4fce705ee5a7797864736f6c63430008040033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100935760003560e01c80635c38eb3a116100665780635c38eb3a146101295780638da5cb5b1461013c578063a8c00a241461014f578063cf81afaa14610162578063e30c39781461017557600080fd5b80633230fb0c146100985780633bd1adec146100de57806340e6e824146100e857806341976e0914610116575b600080fd5b6100c16100a6366004610654565b6002602052600090815260409020546001600160a01b031681565b6040516001600160a01b0390911681526020015b60405180910390f35b6100e6610188565b005b6101086100f6366004610654565b60036020526000908152604090205481565b6040519081526020016100d5565b610108610124366004610654565b61020b565b6100e66101373660046106b3565b61026f565b6000546100c1906001600160a01b031681565b6100e661015d3660046106e0565b610316565b6100e6610170366004610677565b610395565b6001546100c1906001600160a01b031681565b6001546001600160a01b031633146101b357604051636d0c59cb60e01b815260040160405180910390fd5b6000805460405133926001600160a01b03909216917f5bb496b3f951b55d3a1d8e479725a4d25bdc7644fc355f0b71c540354820a1c591a3600080546001600160a01b03199081163317909155600180549091169055565b6001600160a01b0381166000908152600360205260408120541561024557506001600160a01b031660009081526003602052604090205490565b6001600160a01b038083166000908152600260205260409020546102699116610486565b92915050565b6000546001600160a01b0316331461029a57604051637d369bab60e11b815260040160405180910390fd5b6001600160a01b0382166102c157604051637731232360e11b815260040160405180910390fd5b6001600160a01b0381166102e85760405163f9db361d60e01b815260040160405180910390fd5b6001600160a01b03918216600090815260026020526040902080546001600160a01b03191691909216179055565b6000546001600160a01b0316331461034157604051637d369bab60e11b815260040160405180910390fd5b6001600160a01b0382811660009081526002602052604090205416610379576040516324dd56ad60e21b815260040160405180910390fd5b6001600160a01b03909116600090815260036020526040902055565b6000546001600160a01b031633146103c057604051637d369bab60e11b815260040160405180910390fd5b6001600160a01b0382166103e75760405163755a183760e01b815260040160405180910390fd5b801561043957600080546001600160a01b0319166001600160a01b0384169081178255604051909133917f5bb496b3f951b55d3a1d8e479725a4d25bdc7644fc355f0b71c540354820a1c59190a35050565b600180546001600160a01b0319166001600160a01b03841690811790915560405133907f87f5c8846f4c51400fa448cfb84edcec5cc0f333b6d20a5b903e050823dcb66790600090a35050565b6000806000836001600160a01b031663feaf968c6040518163ffffffff1660e01b815260040160a06040518083038186803b1580156104c457600080fd5b505afa1580156104d8573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104fc919061070b565b509350509250506000811161052457604051631b3927ed60e21b815260040160405180910390fd5b600082136105455760405163110eb1eb60e31b815260040160405180910390fd5b6105bf82856001600160a01b031663313ce5676040518163ffffffff1660e01b815260040160206040518083038186803b15801561058257600080fd5b505afa158015610596573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906105ba919061075a565b6105c7565b949350505050565b6000601260ff831610156105ff576105e0826012610923565b6105ee9060ff16600a6107f8565b6105f890846108a0565b9050610269565b601260ff8316111561062e57610616601283610923565b6106249060ff16600a6107f8565b6105f8908461077b565b5090919050565b805169ffffffffffffffffffff8116811461064f57600080fd5b919050565b600060208284031215610665578081fd5b81356106708161095c565b9392505050565b60008060408385031215610689578081fd5b82356106948161095c565b9150602083013580151581146106a8578182fd5b809150509250929050565b600080604083850312156106c5578182fd5b82356106d08161095c565b915060208301356106a88161095c565b600080604083850312156106f2578182fd5b82356106fd8161095c565b946020939093013593505050565b600080600080600060a08688031215610722578081fd5b61072b86610635565b945060208601519350604086015192506060860151915061074e60808701610635565b90509295509295909350565b60006020828403121561076b578081fd5b815160ff81168114610670578182fd5b60008261079657634e487b7160e01b81526012600452602481fd5b600160ff1b8214600019841416156107b0576107b0610946565b500590565b600181815b808511156107f05781600019048211156107d6576107d6610946565b808516156107e357918102915b93841c93908002906107ba565b509250929050565b6000610670838360008261080e57506001610269565b8161081b57506000610269565b8160018114610831576002811461083b57610857565b6001915050610269565b60ff84111561084c5761084c610946565b50506001821b610269565b5060208310610133831016604e8410600b841016171561087a575081810a610269565b61088483836107b5565b806000190482111561089857610898610946565b029392505050565b60006001600160ff1b03818413828413808216868404861116156108c6576108c6610946565b600160ff1b848712828116878305891216156108e4576108e4610946565b8587129250878205871284841616156108ff576108ff610946565b8785058712818416161561091557610915610946565b505050929093029392505050565b600060ff821660ff84168082101561093d5761093d610946565b90039392505050565b634e487b7160e01b600052601160045260246000fd5b6001600160a01b038116811461097157600080fd5b5056fea264697066735822122088906f36316b63839d27ee7f62caf5952e4ef358450bb84e4fce705ee5a7797864736f6c63430008040033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "transferOwner(address,bool)": {
+        "params": {
+          "direct": "If 'true', ownership is directly transferred.",
+          "recipient": "Account granted `owner` access control."
+        }
+      }
+    },
+    "version": 1
+  },
+  "userdoc": {
+    "errors": {
+      "IncreOwnable_NotOwner()": [
+        {
+          "notice": "Emitted when the sender is not the owner"
+        }
+      ],
+      "IncreOwnable_NotPendingOwner()": [
+        {
+          "notice": "Emitted when the sender is not the pending owner"
+        }
+      ],
+      "IncreOwnable_TransferZeroAddress()": [
+        {
+          "notice": "Emitted when the proposed owner is equal to the zero address"
+        }
+      ],
+      "Oracle_AggregatorZeroAddress()": [
+        {
+          "notice": "Emitted when the proposed aggregator address is equal to the zero address"
+        }
+      ],
+      "Oracle_AssetZeroAddress()": [
+        {
+          "notice": "Emitted when the proposed asset address is equal to the zero address"
+        }
+      ],
+      "Oracle_IncompleteRound()": [
+        {
+          "notice": "Emitted when the latest round is incomplete"
+        }
+      ],
+      "Oracle_IntegerConversion()": [
+        {
+          "notice": "Emitted when the latest round's price is invalid"
+        }
+      ],
+      "Oracle_UnsupportedAsset()": [
+        {
+          "notice": "Emitted when owner tries to set fixed price to an unsupported asset"
+        }
+      ]
+    },
+    "kind": "user",
+    "methods": {
+      "claimOwner()": {
+        "notice": "`pendingOwner` can claim `owner` account."
+      },
+      "getPrice(address)": {
+        "notice": "Get latest chainlink price, except if a fixed price is defined for this asset"
+      },
+      "setFixedPrice(address,int256)": {
+        "notice": "A safety mechanism, to be used only if the chainlink get compromised or stops working"
+      },
+      "setOracle(address,address)": {
+        "notice": "Add or update an oracle address"
+      },
+      "transferOwner(address,bool)": {
+        "notice": "Transfer `owner` account."
+      }
+    },
+    "notice": "Oracle contract relying on Chainlink for price",
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 12395,
+        "contract": "contracts/Oracle.sol:Oracle",
+        "label": "owner",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 12397,
+        "contract": "contracts/Oracle.sol:Oracle",
+        "label": "pendingOwner",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address"
+      },
+      {
+        "astId": 4742,
+        "contract": "contracts/Oracle.sol:Oracle",
+        "label": "assetToChainLinkAggregator",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_mapping(t_address,t_contract(AggregatorV3Interface)45)"
+      },
+      {
+        "astId": 4746,
+        "contract": "contracts/Oracle.sol:Oracle",
+        "label": "assetToFixedPrice",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_mapping(t_address,t_int256)"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_contract(AggregatorV3Interface)45": {
+        "encoding": "inplace",
+        "label": "contract AggregatorV3Interface",
+        "numberOfBytes": "20"
+      },
+      "t_int256": {
+        "encoding": "inplace",
+        "label": "int256",
+        "numberOfBytes": "32"
+      },
+      "t_mapping(t_address,t_contract(AggregatorV3Interface)45)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => contract AggregatorV3Interface)",
+        "numberOfBytes": "32",
+        "value": "t_contract(AggregatorV3Interface)45"
+      },
+      "t_mapping(t_address,t_int256)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => int256)",
+        "numberOfBytes": "32",
+        "value": "t_int256"
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+[submodule "lib/forge-std"]
+	path = lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "lib/util-contracts"]
+	path = lib/util-contracts
+	url = https://github.com/gnosis/util-contracts
+[submodule "lib/zkvyper-bin"]
+	path = lib/zkvyper-bin
+	url = https://github.com/matter-labs/zkvyper-bin
+[submodule "lib/zksolc-bin"]
+	path = lib/zksolc-bin
+	url = https://github.com/matter-labs/zksolc-bin

@@ -1,0 +1,12 @@
+[default]
+ffi = false
+fuzz_runs = 256
+optimizer = true
+optimizer_runs = 999999
+remappings = ["hardhat/=node_modules/hardhat/","@openzeppelin/=node_modules/@openzeppelin/","hardhat-deploy/=node_modules/hardhat-deploy/", "forge-std/=lib/forge-std/src/", "util-contracts/=lib/util-contracts/contracts/", "foundry-vyper/=lib/foundry-vyper/lib/"]
+verbosity = 1
+libs = ['lib', 'node_modules']
+src = "contracts/"
+test = 'test/foundry'
+out = 'out'
+cache_path  = 'forge-cache'
