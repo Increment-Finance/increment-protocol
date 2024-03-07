@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 // contracts
 import {VirtualToken} from "./VirtualToken.sol";
@@ -7,14 +7,14 @@ import {IncreAccessControl} from "../utils/IncreAccessControl.sol";
 
 // interfaces
 import {IVBase} from "../interfaces/IVBase.sol";
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "../../lib/chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 /// @notice ERC20 token traded on the CryptoSwap pool
 contract VBase is IVBase, IncreAccessControl, VirtualToken {
     uint8 internal constant PRECISION = 18;
     uint256 public override heartBeat;
 
-    AggregatorV3Interface public immutable aggregator;
+    AggregatorV3Interface public override aggregator;
     AggregatorV3Interface public override sequencerUptimeFeed;
     uint256 public override gracePeriod;
 
@@ -38,12 +38,17 @@ contract VBase is IVBase, IncreAccessControl, VirtualToken {
     /* *************** */
 
     function setHeartBeat(uint256 newHeartBeat) public override onlyRole(GOVERNANCE) {
-        heartBeat = newHeartBeat;
+        if (newHeartBeat == 0) revert VBase_IncorrectHeartBeat();
 
+        heartBeat = newHeartBeat;
         emit HeartBeatUpdated(newHeartBeat);
     }
 
-    function setSequencerUptimeFeed(AggregatorV3Interface newSequencerUptimeFeed) public override onlyRole(GOVERNANCE) {
+    function setSequencerUptimeFeed(AggregatorV3Interface newSequencerUptimeFeed)
+        public
+        override
+        onlyRole(GOVERNANCE)
+    {
         if (address(newSequencerUptimeFeed) == address(0)) revert VBase_SequencerUptimeFeedZeroAddress();
 
         sequencerUptimeFeed = newSequencerUptimeFeed;
@@ -65,8 +70,7 @@ contract VBase is IVBase, IncreAccessControl, VirtualToken {
     function getIndexPrice() external view override returns (int256) {
         // Check if L2 sequencer up when transaction was received
         {
-            (, int256 sequencerStatus, uint256 sequencerStatusLastUpdatedAt, , ) = sequencerUptimeFeed
-                .latestRoundData();
+            (, int256 sequencerStatus, uint256 sequencerStatusLastUpdatedAt,,) = sequencerUptimeFeed.latestRoundData();
 
             // 0 means sequencer is up & 1 sequencer is down
             bool isSequencerUp = sequencerStatus == 0;
@@ -83,14 +87,14 @@ contract VBase is IVBase, IncreAccessControl, VirtualToken {
 
     function _chainlinkPrice(AggregatorV3Interface chainlinkInterface) internal view returns (int256) {
         uint8 chainlinkDecimals = chainlinkInterface.decimals();
-        (, int256 roundPrice, , uint256 roundTimestamp, ) = chainlinkInterface.latestRoundData();
+        (, int256 roundPrice,, uint256 roundTimestamp,) = chainlinkInterface.latestRoundData();
 
         // If the round is not complete yet, roundTimestamp is 0
         if (roundTimestamp <= 0) revert VBase_InvalidRoundTimestamp();
         if (roundPrice <= 0) revert VBase_InvalidRoundPrice();
         if (roundTimestamp + heartBeat < block.timestamp) revert VBase_DataNotFresh();
 
-        int256 scaledPrice = (roundPrice * int256(10**(PRECISION - chainlinkDecimals)));
+        int256 scaledPrice = (roundPrice * int256(10 ** (PRECISION - chainlinkDecimals)));
         return scaledPrice;
     }
 }

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 // contracts
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {SafeERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "../lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import {IncreAccessControl} from "./utils/IncreAccessControl.sol";
 
 // interfaces
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20Metadata} from "../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IVault} from "./interfaces/IVault.sol";
 import {IInsurance} from "./interfaces/IInsurance.sol";
 import {IClearingHouse} from "./interfaces/IClearingHouse.sol";
@@ -32,6 +32,7 @@ contract Insurance is IInsurance, IncreAccessControl, ReentrancyGuard {
 
     /// @notice Debt which could not be settled by insurance
     uint256 public systemBadDebt;
+    bool internal isClearingHouseSet;
 
     constructor(IERC20Metadata _token, IVault _vault) {
         if (address(_token) == address(0)) revert Insurance_ZeroAddressConstructor(0);
@@ -93,7 +94,11 @@ contract Insurance is IInsurance, IncreAccessControl, ReentrancyGuard {
     /// @param newClearingHouse Address of the new ClearingHouse
     function setClearingHouse(IClearingHouse newClearingHouse) external onlyRole(GOVERNANCE) {
         if (address(newClearingHouse) == address(0)) revert Insurance_ClearingHouseZeroAddress();
+        if (isClearingHouseSet) revert Insurance_ClearingHouseAlreadySet();
+
         clearingHouse = newClearingHouse;
+        isClearingHouseSet = true;
+
         emit ClearingHouseChanged(newClearingHouse);
     }
 
@@ -105,9 +110,8 @@ contract Insurance is IInsurance, IncreAccessControl, ReentrancyGuard {
         uint256 lockedInsurance = token.balanceOf(address(this));
 
         if (
-            (systemBadDebt > 0) ||
-            (lockedInsurance <= amount) ||
-            (lockedInsurance - amount).toInt256() < tvl.wadMul(clearingHouse.insuranceRatio().toInt256())
+            (systemBadDebt > 0) || (lockedInsurance <= amount)
+                || (lockedInsurance - amount).toInt256() < tvl.wadMul(clearingHouse.insuranceRatio().toInt256())
         ) revert Insurance_InsufficientInsurance();
 
         // withdraw

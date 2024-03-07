@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 // contracts
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {AccessControl} from "../../lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
 
 // interfaces
 import {IIncreAccessControl} from "../interfaces/IIncreAccessControl.sol";
@@ -10,14 +10,14 @@ import {IIncreAccessControl} from "../interfaces/IIncreAccessControl.sol";
 /// @notice Increment access control contract.
 contract IncreAccessControl is AccessControl {
     bytes32 public constant GOVERNANCE = keccak256("GOVERNANCE");
-    bytes32 public constant MANAGER = keccak256("MANAGER");
+    bytes32 public constant EMERGENCY_ADMIN = keccak256("EMERGENCY_ADMIN");
 
     constructor() {
         _setupRole(GOVERNANCE, msg.sender);
         _setRoleAdmin(GOVERNANCE, GOVERNANCE);
 
-        _setupRole(MANAGER, msg.sender);
-        _setRoleAdmin(MANAGER, GOVERNANCE);
+        _setupRole(EMERGENCY_ADMIN, msg.sender);
+        _setRoleAdmin(EMERGENCY_ADMIN, GOVERNANCE);
     }
 
     // utils
@@ -25,7 +25,7 @@ contract IncreAccessControl is AccessControl {
         return hasRole(GOVERNANCE, account);
     }
 
-    function isManager(address account) external view returns (bool) {
-        return hasRole(MANAGER, account);
+    function isEmergencyAdmin(address account) external view returns (bool) {
+        return hasRole(EMERGENCY_ADMIN, account);
     }
 }

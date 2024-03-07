@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.15;
+pragma solidity ^0.8.16;
 
 // interfaces
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "../../lib/chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 /// @notice Oracle interface created to ease oracle contract switch
 interface IOracle {
@@ -44,6 +44,9 @@ interface IOracle {
     /* ****************** */
     /*     Errors         */
     /* ****************** */
+
+    /// @notice Emitted when the proposed heart beat is less than 1 sec second
+    error Oracle_IncorrectHeartBeat();
 
     /// @notice Emitted when the latest round is incomplete
     error Oracle_InvalidRoundTimestamp();
@@ -89,12 +92,7 @@ interface IOracle {
     /*  State modifying   */
     /* ****************** */
 
-    function setOracle(
-        address asset,
-        AggregatorV3Interface aggregator,
-        uint24 heartBeat,
-        bool isVault
-    ) external;
+    function setOracle(address asset, AggregatorV3Interface aggregator, uint24 heartBeat, bool isVault) external;
 
     function setFixedPrice(address asset, int256 fixedPrice) external;
 

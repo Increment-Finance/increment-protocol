@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.15;
+pragma solidity ^0.8.16;
 
 // interfaces
 import {IClearingHouse} from "./IClearingHouse.sol";
 import {IPerpetual} from "./IPerpetual.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20Metadata} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IVault} from "./IVault.sol";
 import {IInsurance} from "./IInsurance.sol";
 import {ICryptoSwap} from "./ICryptoSwap.sol";
-import {IStakingContract} from "./IStakingContract.sol";
+import {IRewardContract} from "./IRewardContract.sol";
 
 // libraries
 import {LibPerpetual} from "../lib/LibPerpetual.sol";
@@ -36,6 +36,9 @@ interface IClearingHouse {
     /// @notice Emitted when passing the address of a perpetual market which has already been added
     error ClearingHouse_PerpetualMarketAlreadyAssigned();
 
+    /// @notice Emitted when attempting to remove a perpetual market which does not exist
+    error ClearingHouse_MarketDoesNotExist();
+
     /// @notice Emitted when there is not enough margin to withdraw the requested amount
     error ClearingHouse_WithdrawInsufficientMargin();
 
@@ -51,9 +54,6 @@ interface IClearingHouse {
     /// @notice Emitted when the attempted liquidation does not close the full position
     error ClearingHouse_LiquidateInsufficientProposedAmount();
 
-    /// @notice Emitted when attempting to seize collateral of a user with an open position
-    error ClearingHouse_SeizeCollateralStillOpen();
-
     /// @notice Emitted when a user attempts to provide liquidity with amount equal to 0
     error ClearingHouse_ProvideLiquidityZeroAmount();
 
@@ -62,9 +62,6 @@ interface IClearingHouse {
 
     /// @notice Emitted when a user attempts to withdraw more liquidity than they have
     error ClearingHouse_RemoveLiquidityInsufficientFunds();
-
-    /// @notice Emitted when vault withdrawal is unsuccessful
-    error ClearingHouse_VaultWithdrawUnsuccessful();
 
     /// @notice Emitted when the proposed minMargin is too low or too high
     error ClearingHouse_InvalidMinMargin();
@@ -114,14 +111,27 @@ interface IClearingHouse {
     /// @notice Emitted when a liquidator tries seizing collateral of user with sufficient collaterals level
     error ClearingHouse_SufficientUserCollateral();
 
+    /// @notice Emitted when attempting to deposit to the zero address
+    error ClearingHouse_DepositForZeroAddress();
+
+    /// @notice Emitted when governance tries to sell dust with a negative balance
+    error ClearingHouse_NegativeDustProceeds();
+
     /* ****************** */
     /*     Events         */
     /* ****************** */
 
     /// @notice Emitted when new perpetual market is added
     /// @param perpetual New perpetual market
+    /// @param listedIdx Added Market Idx
     /// @param numPerpetuals New number of perpetual markets
-    event MarketAdded(IPerpetual indexed perpetual, uint256 numPerpetuals);
+    event MarketAdded(IPerpetual indexed perpetual, uint256 listedIdx, uint256 numPerpetuals);
+
+    /// @notice Emitted when perpetual market is removed
+    /// @param perpetual Removed perpetual market
+    /// @param delistedIdx Removed Market Idx
+    /// @param numPerpetuals New number of perpetual markets
+    event MarketRemoved(IPerpetual indexed perpetual, uint256 delistedIdx, uint256 numPerpetuals);
 
     /// @notice Emitted when a position is opened/extended
     /// @param idx Index of the perpetual market
@@ -129,8 +139,11 @@ interface IClearingHouse {
     /// @param direction Whether the position is LONG or SHORT
     /// @param addedOpenNotional Notional (USD assets/debt) added to the position
     /// @param addedPositionSize PositionSize (Base assets/debt) added to the position
-    /// @param profit Sum of pnL + tradingFeesPayed + fundingPaymentsPaid
+    /// @param profit Sum of pnL + tradingFeesPayed - insurance fees
+    /// @param tradingFeesPayed "tbd"
+    /// @param insuranceFeesPayed "tbd"
     /// @param isPositionIncreased Whether the position was extended or reduced / reversed
+    /// @param isPositionClosed Whether the position was closed
     event ChangePosition(
         uint256 indexed idx,
         address indexed user,
@@ -138,7 +151,10 @@ interface IClearingHouse {
         int256 addedOpenNotional,
         int256 addedPositionSize,
         int256 profit,
-        bool isPositionIncreased
+        int256 tradingFeesPayed,
+        int256 insuranceFeesPayed,
+        bool isPositionIncreased,
+        bool isPositionClosed
     );
 
     /// @notice Emitted when an user position is liquidated
@@ -146,11 +162,16 @@ interface IClearingHouse {
     /// @param liquidatee User who gets liquidated
     /// @param liquidator User who is liquidating
     /// @param notional Notional amount of the liquidatee
+    /// @param profit Profit of the trader
+    /// @param isTrader Whether the user is a trader
     event LiquidationCall(
         uint256 indexed idx,
         address indexed liquidatee,
         address indexed liquidator,
-        uint256 notional
+        uint256 notional,
+        int256 profit,
+        int256 tradingFeesPayed,
+        bool isTrader
     );
 
     /// @notice Emitted when an user non-UA collaterals are seized
@@ -163,23 +184,35 @@ interface IClearingHouse {
     /// @param liquidityProvider User who provides liquidity
     /// @param quoteAmount vQuote amount (i.e. USD amount) to be added to the targeted market
     /// @param baseAmount vBase amount (i.e. Base amount) to be added to the targeted market
+    /// @param tradingFeesEarned Trading fees earned by the liquidity provider
     event LiquidityProvided(
         uint256 indexed idx,
         address indexed liquidityProvider,
         uint256 quoteAmount,
-        uint256 baseAmount
+        uint256 baseAmount,
+        int256 tradingFeesEarned
     );
 
     /// @notice Emitted when liquidity is removed
     /// @param idx Index of the perpetual market
     /// @param liquidityProvider User who provides liquidity
-    /// @param reductionRatio Pourcentage of previous position reduced
-    event LiquidityRemoved(uint256 indexed idx, address indexed liquidityProvider, uint256 reductionRatio);
+    /// @param profit Sum of pnL + Trading fees earned - Trading fees paid - Insurance fees paid
+    /// @param tradingFeesPayed Trading fees paid for closing the active position
+    /// @param reductionRatio Percentage of previous position reduced
+    event LiquidityRemoved(
+        uint256 indexed idx,
+        address indexed liquidityProvider,
+        uint256 reductionRatio,
+        int256 profit,
+        int256 tradingFeesPayed,
+        bool isPositionClosed
+    );
 
     /// @notice Emitted when dust is sold by governance
     /// @param idx Index of the perpetual market
     /// @param profit Amount of profit generated by the dust sale. 18 decimals
-    event DustSold(uint256 indexed idx, int256 profit);
+    /// @param tradingFeesPayed Trading fees paid on dust sell. 18 decimals
+    event DustSold(uint256 indexed idx, int256 profit, int256 tradingFeesPayed);
 
     /// @notice Emitted when parameters are changed
     event ClearingHouseParametersChanged(
@@ -194,7 +227,7 @@ interface IClearingHouse {
         int256 uaDebtSeizureThreshold
     );
 
-    event StakingContractChanged(IStakingContract newStakingContract);
+    event RewardContractChanged(IRewardContract newRewardContract);
 
     /* ****************** */
     /*     Viewer         */
@@ -206,7 +239,11 @@ interface IClearingHouse {
 
     function perpetuals(uint256 idx) external view returns (IPerpetual);
 
-    function stakingContract() external view returns (IStakingContract);
+    function id(uint256 i) external view returns (uint256);
+
+    function marketIds() external view returns (uint256);
+
+    function rewardContract() external view returns (IRewardContract);
 
     function getNumMarkets() external view returns (uint256);
 
@@ -232,41 +269,47 @@ interface IClearingHouse {
 
     function getDebtAcrossMarkets(address account) external view returns (int256);
 
+    function canSeizeCollateral(address liquidatee) external view returns (bool);
+
     /* ****************** */
     /*  State modifying   */
     /* ****************** */
 
     function allowListPerpetual(IPerpetual perp) external;
 
+    function delistPerpetual(IPerpetual perp) external;
+
     function pause() external;
 
     function unpause() external;
 
-    function sellDust(
-        uint256 idx,
-        uint256 proposedAmount,
-        uint256 minAmount
-    ) external;
+    function settleDust(uint256 idx, uint256 proposedAmount, uint256 minAmount, LibPerpetual.Side direction) external;
 
     function setParameters(ClearingHouseParams memory params) external;
 
-    function addStakingContract(IStakingContract staking) external;
+    function updateGlobalState() external;
+
+    function addRewardContract(IRewardContract rewardDistributor) external;
+
+    function increaseAllowance(address receiver, uint256 addedAmount, IERC20Metadata token) external;
+
+    function decreaseAllowance(address receiver, uint256 subtractedAmount, IERC20Metadata token) external;
 
     function deposit(uint256 amount, IERC20Metadata token) external;
+
+    function depositFor(address user, uint256 amount, IERC20Metadata token) external;
 
     function withdraw(uint256 amount, IERC20Metadata token) external;
 
     function withdrawAll(IERC20Metadata token) external;
 
-    function changePosition(
-        uint256 idx,
-        uint256 amount,
-        uint256 minAmount,
-        LibPerpetual.Side direction
-    ) external;
+    function withdrawFrom(address user, uint256 amount, IERC20Metadata token) external;
+
+    function changePosition(uint256 idx, uint256 amount, uint256 minAmount, LibPerpetual.Side direction) external;
 
     function extendPositionWithCollateral(
         uint256 idx,
+        address user,
         uint256 collateralAmount,
         IERC20Metadata token,
         uint256 positionAmount,
@@ -290,20 +333,19 @@ interface IClearingHouse {
         LibPerpetual.Side direction
     ) external;
 
-    function liquidate(
+    function liquidateTrader(uint256 idx, address liquidatee, uint256 proposedAmount, uint256 minAmount) external;
+
+    function liquidateLp(
         uint256 idx,
         address liquidatee,
+        uint256[2] calldata minVTokenAmounts,
         uint256 proposedAmount,
-        bool isTrader
+        uint256 minAmount
     ) external;
 
     function seizeCollateral(address liquidatee) external;
 
-    function provideLiquidity(
-        uint256 idx,
-        uint256[2] calldata amounts,
-        uint256 minLpAmount
-    ) external;
+    function provideLiquidity(uint256 idx, uint256[2] calldata amounts, uint256 minLpAmount) external;
 
     function removeLiquidity(
         uint256 idx,

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.15;
+pragma solidity ^0.8.16;
 
 // interfaces
 import {ICryptoSwap} from "./ICryptoSwap.sol";
@@ -30,14 +30,14 @@ interface IPerpetual {
     /*     Errors         */
     /* ****************** */
 
+    /// @notice Emitted when trading expansion operations are paused
+    error Perpetual_TradingExpansionPaused();
+
     /// @notice Emitted when the zero address is provided as a parameter in the constructor
     error Perpetual_ZeroAddressConstructor(uint256 paramIndex);
 
     /// @notice Emitted when the constructor fails to give approval of a virtual token to the market
     error Perpetual_VirtualTokenApprovalConstructor(uint256 tokenIndex);
-
-    /// @notice Emitted when market mid fee does not equal out fee
-    error Perpetual_MarketEqualFees();
 
     /// @notice Emitted when the curve admin fee is invalid
     error Perpetual_InvalidAdminFee();
@@ -90,12 +90,6 @@ interface IPerpetual {
     /// @notice Emitted when the liquidity provider has an open position
     error Perpetual_LPOpenPosition();
 
-    /// @notice Emitted when proposed amount is greater than position size
-    error Perpetual_ProposedAmountExceedsPositionSize();
-
-    /// @notice Emitted when proposed amount is greater than maxVQuoteAmount
-    error Perpetual_ProposedAmountExceedsMaxMarketPrice();
-
     /// @notice Emitted when the max tvl is reached
     error Perpetual_MaxLiquidityProvided();
 
@@ -108,9 +102,17 @@ interface IPerpetual {
     /// @notice Emitted when the user attempts remove liquidity too early
     error Perpetual_LockPeriodNotReached(uint256 withdrawTime);
 
+    /// @notice Emitted when the user attempts to open a too large short position
+    error Perpetual_TooMuchExposure();
+
     /* ****************** */
     /*     Events         */
     /* ****************** */
+
+    /// @notice Emitted when an admin pauses or unpause trading expansion operations
+    /// @param admin Address of the admin who triggered this operation
+    /// @param toPause To pause (true) or unpause (false) trading expansion operations
+    event TradingExpansionPauseToggled(address admin, bool toPause);
 
     /// @notice Emitted when TWAP is updated
     /// @param newOracleTwap Latest oracle Time-weighted-average-price
@@ -119,8 +121,9 @@ interface IPerpetual {
 
     /// @notice Emitted when funding rate is updated
     /// @param cumulativeFundingRate Cumulative sum of all funding rate updates
+    /// @param cumulativeFundingPerLpToken Cumulative sum of all funding per lp token updates
     /// @param fundingRate Latest fundingRate update
-    event FundingRateUpdated(int256 cumulativeFundingRate, int256 fundingRate);
+    event FundingRateUpdated(int256 cumulativeFundingRate, int256 cumulativeFundingPerLpToken, int256 fundingRate);
 
     /// @notice Emitted when swap with cryptoswap pool fails
     /// @param errorMessage Return error message
@@ -128,7 +131,7 @@ interface IPerpetual {
 
     /// @notice Emitted when (base) dust is generated
     /// @param vBaseAmount Amount of dust
-    event DustGenerated(uint256 vBaseAmount);
+    event DustGenerated(int256 vBaseAmount);
 
     /// @notice Emitted when parameters are updated
     event PerpetualParametersChanged(
@@ -142,9 +145,20 @@ interface IPerpetual {
         uint256 lockPeriod
     );
 
+    /// @notice Emitted when funding payments are exchanged for a trader / lp
+    event FundingPaid(
+        address indexed account,
+        int256 amount,
+        int256 globalCumulativeFundingRate,
+        int256 userCumulativeFundingRate,
+        bool isTrader
+    );
+
     /* ****************** */
     /*     Viewer         */
     /* ****************** */
+
+    function isTradingExpansionAllowed() external view returns (bool);
 
     function market() external view returns (ICryptoSwap);
 
@@ -157,6 +171,14 @@ interface IPerpetual {
     function curveCryptoViews() external view returns (ICurveCryptoViews);
 
     function maxLiquidityProvided() external view returns (uint256);
+
+    function oracleCumulativeAmount() external view returns (int256);
+
+    function oracleCumulativeAmountAtBeginningOfPeriod() external view returns (int256);
+
+    function marketCumulativeAmount() external view returns (int256);
+
+    function marketCumulativeAmountAtBeginningOfPeriod() external view returns (int256);
 
     function riskWeight() external view returns (uint256);
 
@@ -190,11 +212,7 @@ interface IPerpetual {
 
     function getTraderUnrealizedPnL(address account) external view returns (int256);
 
-    function getTraderFundingPayments(address account) external view returns (int256);
-
     function getLpUnrealizedPnL(address account) external view returns (int256);
-
-    function getLpFundingPayments(address account) external view returns (int256);
 
     function getLpTradingFees(address account) external view returns (uint256);
 
@@ -219,10 +237,10 @@ interface IPerpetual {
     /* ************* */
 
     function removeLiquiditySwap(
-        address user,
+        address account,
         uint256 liquidityAmountToRemove,
         uint256[2] calldata minVTokenAmounts,
-        uint256 proposedAmount
+        bytes memory func
     ) external;
 
     /* ****************** */
@@ -238,17 +256,17 @@ interface IPerpetual {
     )
         external
         returns (
-            int256 openNotional,
-            int256 positionSize,
+            int256 quoteProceeds,
+            int256 baseProceeds,
             int256 profit,
-            bool isPositionIncreased
+            int256 tradingFeesPayed,
+            bool isPositionIncreased,
+            bool isPositionClosed
         );
 
-    function provideLiquidity(
-        address account,
-        uint256[2] calldata amounts,
-        uint256 minLpAmount
-    ) external returns (int256 tradingFees);
+    function provideLiquidity(address account, uint256[2] calldata amounts, uint256 minLpAmount)
+        external
+        returns (int256 tradingFees);
 
     function removeLiquidity(
         address account,
@@ -261,17 +279,23 @@ interface IPerpetual {
         external
         returns (
             int256 profit,
+            int256 tradingFeesPayed,
             uint256 reductionRatio,
-            int256 quoteProceeds
+            int256 quoteProceeds,
+            bool isPositionClosed
         );
 
-    function settleTrader(address account) external returns (int256 fundingPayments);
+    function settleTraderFunding(address account) external returns (int256 fundingPayments);
 
-    function settleLp(address account) external returns (int256 fundingPayments);
+    function settleLpFunding(address account) external returns (int256 fundingPayments);
+
+    function toggleTradingExpansionPause(bool toPause) external;
 
     function pause() external;
 
     function unpause() external;
 
     function setParameters(PerpetualParams memory params) external;
+
+    function updateGlobalState() external;
 }

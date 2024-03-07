@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.15;
+pragma solidity ^0.8.16;
 
-import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
+import {IAccessControl} from "../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 
 interface IIncreAccessControl is IAccessControl {
     /* ****************** */
@@ -14,7 +14,7 @@ interface IIncreAccessControl is IAccessControl {
 
     function isGovernor(address account) external view returns (bool);
 
-    function isManager(address account) external view returns (bool);
+    function isEmergencyAdmin(address account) external view returns (bool);
 
     /* ****************** */
     /*  State modifying   */

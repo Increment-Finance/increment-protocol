@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.15;
+pragma solidity ^0.8.16;
 
 // libraries
 import {LibMath} from "./LibMath.sol";
@@ -20,20 +20,18 @@ library LibPerpetual {
         int128 openNotional;
         // base assets or liabilities
         int128 positionSize;
-        // user cumulative funding rate (updated when open/close position)
-        int128 cumFundingRate;
         // lp token owned (is zero for traders)
         uint128 liquidityBalance;
-
         // last time when liquidity was provided
         uint64 depositTime;
-
         // total percentage return of liquidity providers index
         uint128 totalTradingFeesGrowth;
         // total base fees paid in cryptoswap pool
         uint128 totalBaseFeesGrowth;
         // total quote fees paid in cryptoswap pool
         uint128 totalQuoteFeesGrowth;
+        // total funding payed by liquidity providers
+        int128 cumFundingPerLpToken;
     }
 
     struct TraderPosition {
@@ -54,9 +52,12 @@ library LibPerpetual {
         uint64 timeOfLastTwapUpdate;
         // global cumulative funding rate (updated every trade)
         int128 cumFundingRate;
-
         // total liquidity provided (in vQuote)
-        uint256 totalQuoteProvided;
+        uint128 totalQuoteProvided;
+        // total liquidity provided (in vBase)
+        uint128 totalBaseProvided;
+        // total funding payed by liquidity providers
+        int128 cumFundingPerLpToken;
         // current trade amount in the block
         uint128 currentBlockTradeAmount;
         /* fees state */
@@ -67,5 +68,9 @@ library LibPerpetual {
         uint128 totalBaseFeesGrowth;
         // total quote fees paid in cryptoswap pool
         uint128 totalQuoteFeesGrowth;
+        // total long position of all traders
+        uint128 traderLongs;
+        // total short position of all traders
+        uint128 traderShorts;
     }
 }

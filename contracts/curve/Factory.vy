@@ -1,6 +1,3 @@
-# repo:
-# https://github.com/curvefi/curve-factory-crypto/blob/e2a59ab163b5b715b38500585a5d1d9c0671eb34/contracts/Factory.vy
-# @version 0.3.3
 """
 @title Curve Factory
 @license MIT

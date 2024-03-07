@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.15;
+pragma solidity ^0.8.16;
 
 // libraries
 import {LibMath} from "./LibMath.sol";
@@ -17,10 +17,10 @@ library LibReserve {
         if (tokenDecimals == PROTOCOL_DECIMALS) {
             return tokenAmount;
         } else if (tokenDecimals < PROTOCOL_DECIMALS) {
-            return tokenAmount * (10**(PROTOCOL_DECIMALS - tokenDecimals));
+            return tokenAmount * (10 ** (PROTOCOL_DECIMALS - tokenDecimals));
         }
 
-        return tokenAmount / (10**(tokenDecimals - PROTOCOL_DECIMALS));
+        return tokenAmount / (10 ** (tokenDecimals - PROTOCOL_DECIMALS));
     }
 
     /// @notice Convert amount from 'tokenDecimals' decimals to 18 decimals precision
@@ -31,9 +31,9 @@ library LibReserve {
         if (tokenDecimals == PROTOCOL_DECIMALS) {
             return wadAmount;
         } else if (tokenDecimals < PROTOCOL_DECIMALS) {
-            return wadAmount / (10**(PROTOCOL_DECIMALS - tokenDecimals));
+            return wadAmount / (10 ** (PROTOCOL_DECIMALS - tokenDecimals));
         }
 
-        return wadAmount * 10**(tokenDecimals - PROTOCOL_DECIMALS);
+        return wadAmount * 10 ** (tokenDecimals - PROTOCOL_DECIMALS);
     }
 }

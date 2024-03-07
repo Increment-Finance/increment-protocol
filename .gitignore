@@ -1,6 +1,7 @@
 cache/
 artifacts/
 
+lcov.info
 coverage/
 coverage.json
 typechain/
@@ -22,6 +23,7 @@ deployments/hardhat
 deployments/localhost
 
 _toDo/
+todo.md
 notes.md
 notes.org
 
@@ -47,6 +49,7 @@ docs/
 
 *.env.swp
 out/
+zkout/
 forge-cache/
 
 *.tgz
@@ -55,3 +58,11 @@ cache-zk/
 
 *.log
 gasReporterOutputTmp.md
+
+build/
+
+.venv/
+old-artifacts/
+.gitmodules
+
+bytes.md

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 // contracts
-import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
+import {Pausable} from "../lib/openzeppelin-contracts/contracts/security/Pausable.sol";
 import {IncreAccessControl} from "./utils/IncreAccessControl.sol";
 
 // interfaces
@@ -12,7 +12,7 @@ import {IVQuote} from "./interfaces/IVQuote.sol";
 import {ICryptoSwap} from "./interfaces/ICryptoSwap.sol";
 import {IClearingHouse} from "./interfaces/IClearingHouse.sol";
 import {ICurveCryptoViews} from "./interfaces/ICurveCryptoViews.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20Metadata} from "../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 // libraries
 import {LibMath} from "./lib/LibMath.sol";
@@ -26,9 +26,12 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
     // constants
     uint256 internal constant VQUOTE_INDEX = 0; // index of quote asset in curve pool
     uint256 internal constant VBASE_INDEX = 1; // index of base asset in curve pool
-    int256 internal constant CURVE_TRADING_FEE_PRECISION = 1e10; // curve trading fee precision
+    uint256 internal constant CURVE_TRADING_FEE_DECIMALS = 10; // curve trading fee decimals
 
     // parameters
+
+    /// @notice wether opening and extending trading positions is allowed
+    bool public override isTradingExpansionAllowed;
 
     /// @notice risk weight of the perpetual pair
     uint256 public override riskWeight;
@@ -51,7 +54,7 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
     /// @notice max trade amount in one block
     uint256 public override maxBlockTradeAmount;
 
-    /// @notice max position size in one block (1/10 of maxBlockTradeAmount)
+    /// @notice max position size (1/10 of maxBlockTradeAmount)
     uint256 public override maxPosition;
 
     /// @notice time when the liquidity provision has to be locked
@@ -88,11 +91,11 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
     int128 public override marketTwap;
 
     // internal state
-    int256 internal oracleCumulativeAmount;
-    int256 internal oracleCumulativeAmountAtBeginningOfPeriod;
-    int256 internal marketCumulativeAmount;
+    int256 public override oracleCumulativeAmount;
+    int256 public override oracleCumulativeAmountAtBeginningOfPeriod;
+    int256 public override marketCumulativeAmount;
     // slither-disable-next-line similar-names
-    int256 internal marketCumulativeAmountAtBeginningOfPeriod;
+    int256 public override marketCumulativeAmountAtBeginningOfPeriod;
 
     // user state
     mapping(address => LibPerpetual.TraderPosition) internal traderPosition;
@@ -104,6 +107,7 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         ICryptoSwap _market,
         IClearingHouse _clearingHouse,
         ICurveCryptoViews _views,
+        bool _isTradingExpansionAllowed,
         PerpetualParams memory _params
     ) {
         if (address(_vBase) == address(0)) revert Perpetual_ZeroAddressConstructor(0);
@@ -119,12 +123,19 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         curveCryptoViews = _views;
 
         // approve all future transfers between Perpetual and market (curve pool)
-        if (!vBase.approve(address(_market), type(uint256).max))
+        if (!vBase.approve(address(_market), type(uint256).max)) {
             revert Perpetual_VirtualTokenApprovalConstructor(VBASE_INDEX);
-        if (!vQuote.approve(address(_market), type(uint256).max))
+        }
+        if (!vQuote.approve(address(_market), type(uint256).max)) {
             revert Perpetual_VirtualTokenApprovalConstructor(VQUOTE_INDEX);
+        }
+
+        // expected to be false to block trading operations till admin role activates them,
+        // except for test deployments
+        isTradingExpansionAllowed = _isTradingExpansionAllowed;
 
         // initialize global state
+        // @dev: initiate the pool with the last_price
         _initGlobalState(_vBase.getIndexPrice(), _market.last_prices().toInt256());
 
         setParameters(
@@ -174,7 +185,9 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
             int256 quoteProceeds,
             int256 baseProceeds,
             int256 profit,
-            bool isPositionIncreased
+            int256 tradingFeesPayed,
+            bool isPositionIncreased,
+            bool isPositionClosed
         )
     {
         LibPerpetual.TraderPosition storage trader = traderPosition[account];
@@ -182,30 +195,39 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         int256 traderPositionSize = trader.positionSize;
         bool isNewPosition = !_isTraderPositionOpen(trader);
 
-        if (isNewPosition || (traderPositionSize > 0 ? LibPerpetual.Side.Long : LibPerpetual.Side.Short) == direction) {
-            (quoteProceeds, baseProceeds, profit) = _extendPosition(account, amount, direction, minAmount);
+        if (isNewPosition || (traderPositionSize >= 0 ? LibPerpetual.Side.Long : LibPerpetual.Side.Short) == direction)
+        {
+            if (!isTradingExpansionAllowed) {
+                revert Perpetual_TradingExpansionPaused();
+            }
+
+            (quoteProceeds, baseProceeds, tradingFeesPayed) = _extendPosition(account, amount, direction, minAmount);
             isPositionIncreased = true;
+            profit = -tradingFeesPayed;
         } else {
-            (quoteProceeds, baseProceeds, profit) = _reducePosition(account, amount, minAmount);
+            (quoteProceeds, baseProceeds, profit, tradingFeesPayed, isPositionClosed) =
+                _reducePosition(account, amount, minAmount);
         }
 
         if (!isLiquidation) {
             // check max deviation
             _updateCurrentBlockTradeAmount(quoteProceeds.abs().toUint256());
             if (!_checkBlockTradeAmount()) revert Perpetual_ExcessiveBlockTradeAmount();
+            if (globalPosition.traderShorts > globalPosition.totalBaseProvided) revert Perpetual_TooMuchExposure();
         }
 
         if (
-            int256(trader.openNotional).abs().toUint256() > maxPosition ||
-            int256(trader.positionSize).abs().wadMul(indexPrice()).toUint256() > maxPosition
+            int256(trader.openNotional).abs().toUint256() > maxPosition
+                || int256(trader.positionSize).abs().wadMul(indexPrice()).toUint256() > maxPosition
         ) revert Perpetual_MaxPositionSize();
     }
 
     /// @notice Settle funding payments for a trader
     /// @param account Trader
     /// @return fundingPayments Pending funding payments
-    function settleTrader(address account)
-        external
+    /// @notice Update the cumulative funding rate for the trader and return pending funding payments
+    function settleTraderFunding(address account)
+        public
         override
         onlyClearingHouse
         whenNotPaused
@@ -216,16 +238,15 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
 
         _updateGlobalState();
 
-        // apply funding rate on existing positionSize
-        if (_isTraderPositionOpen(trader)) {
-            // settle trader funding rate
-            fundingPayments = _getFundingPayments(
-                trader.positionSize > 0,
-                trader.cumFundingRate,
-                globalP.cumFundingRate,
-                int256(trader.positionSize).abs()
-            );
+        if (!_isTraderPositionOpen(trader)) {
+            return 0;
         }
+
+        fundingPayments = _getTraderFundingPayments(
+            trader.positionSize >= 0, trader.cumFundingRate, globalP.cumFundingRate, int256(trader.positionSize).abs()
+        );
+
+        emit FundingPaid(account, fundingPayments, globalP.cumFundingRate, trader.cumFundingRate, true);
 
         trader.cumFundingRate = globalP.cumFundingRate;
 
@@ -241,11 +262,13 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
     /// @param amounts Amount of virtual tokens ([vQuote, vBase]) provided. 18 decimals
     /// @param minLpAmount Minimum amount of Lp tokens minted. 18 decimals
     /// @return tradingFees Generated profit generated from trading fees
-    function provideLiquidity(
-        address account,
-        uint256[2] calldata amounts,
-        uint256 minLpAmount
-    ) external override whenNotPaused onlyClearingHouse returns (int256 tradingFees) {
+    function provideLiquidity(address account, uint256[2] calldata amounts, uint256 minLpAmount)
+        external
+        override
+        whenNotPaused
+        onlyClearingHouse
+        returns (int256 tradingFees)
+    {
         // reflect the added liquidity on the LP position
         LibPerpetual.LiquidityProviderPosition storage lp = lpPosition[account];
         LibPerpetual.GlobalPosition storage globalP = globalPosition;
@@ -253,9 +276,8 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         // require a percentage deviation of quote to base amounts (in USD terms) to be lower than 10%
         // | (a - b) | / a  <= 10% <=>  | a - b | <= a * 10%, where a = amounts[0], b = amount[1] * p
         if (
-            (amounts[VQUOTE_INDEX].toInt256() - amounts[VBASE_INDEX].toInt256().wadMul(indexPrice()))
-                .abs()
-                .toUint256() > (amounts[VQUOTE_INDEX].wadMul(1e17))
+            (amounts[VQUOTE_INDEX].toInt256() - amounts[VBASE_INDEX].toInt256().wadMul(indexPrice())).abs().toUint256()
+                > (amounts[VQUOTE_INDEX].wadMul(1e17))
         ) revert Perpetual_LpAmountDeviation();
 
         uint256[2] memory providedLiquidity = amounts;
@@ -285,15 +307,16 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
             totalTradingFeesGrowth: globalP.totalTradingFeesGrowth,
             totalBaseFeesGrowth: globalP.totalBaseFeesGrowth,
             totalQuoteFeesGrowth: globalP.totalQuoteFeesGrowth,
-            cumFundingRate: globalP.cumFundingRate,
             liquidityBalance: (lp.liquidityBalance + liquidity).toUint128(),
-            depositTime: block.timestamp.toUint64()
+            depositTime: block.timestamp.toUint64(),
+            cumFundingPerLpToken: globalP.cumFundingPerLpToken
         });
 
         // update global state
         uint256 newLiquidityProvided = globalP.totalQuoteProvided + amounts[VQUOTE_INDEX];
         if (newLiquidityProvided > maxLiquidityProvided) revert Perpetual_MaxLiquidityProvided();
-        globalP.totalQuoteProvided = newLiquidityProvided;
+        globalP.totalQuoteProvided = newLiquidityProvided.toUint128();
+        globalP.totalBaseProvided += amounts[VBASE_INDEX].toUint128();
     }
 
     /// @notice Remove liquidity from the pool
@@ -318,66 +341,66 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         onlyClearingHouse
         returns (
             int256 profit,
+            int256 tradingFeesPayed,
             uint256 reductionRatio,
-            int256 quoteProceeds
+            int256 quoteProceeds,
+            bool isPositionClosed
         )
     {
         LibPerpetual.LiquidityProviderPosition storage lp = lpPosition[account];
-        LibPerpetual.GlobalPosition storage globalP = globalPosition;
+        // @dev No local variable for `globalPosition` to reduce nb of vars in the scope, else stack too deep error
+        //      Yet, using `globalPosition` directly is equivalent to using a `storage` variable of it
 
         if (liquidityAmountToRemove > lp.liquidityBalance) revert Perpetual_LPWithdrawExceedsBalance();
 
-        if (!isLiquidation && (block.timestamp < lp.depositTime + lockPeriod))
+        if (!isLiquidation && (block.timestamp < lp.depositTime + lockPeriod)) {
             revert Perpetual_LockPeriodNotReached(lp.depositTime + lockPeriod);
+        }
 
-        profit += _settleLpTradingFees(lp, globalP).toInt256();
+        profit += _settleLpTradingFees(lp, globalPosition).toInt256();
 
         // 1) remove liquidity from the curve pool
-        (uint256 quoteAmount, uint256 baseAmount) = _removeLiquidity(
-            lp,
-            globalP,
-            liquidityAmountToRemove,
-            minVTokenAmounts
-        );
+        (uint256 quoteAmount, uint256 baseAmount) =
+            _removeLiquidity(lp, globalPosition, liquidityAmountToRemove, minVTokenAmounts);
 
         // 2) settle trading position arising from change in pool ratio after removing liquidity
         reductionRatio = liquidityAmountToRemove.wadDiv(lp.liquidityBalance);
 
-        int256 pnl;
-        (pnl, quoteProceeds) = _settleLpPosition(
-            LibPerpetual.TraderPosition({
-                openNotional: (quoteAmount.toInt256() + int256(lp.openNotional).wadMul(reductionRatio.toInt256()))
-                    .toInt128(),
-                positionSize: (baseAmount.toInt256() + int256(lp.positionSize).wadMul(reductionRatio.toInt256()))
-                    .toInt128(),
+        {
+            int256 pnl;
+            LibPerpetual.TraderPosition memory positionToClose = LibPerpetual.TraderPosition({
+                openNotional: (quoteAmount.toInt256() + int256(lp.openNotional).wadMul(reductionRatio.toInt256())).toInt128(
+                ),
+                positionSize: (baseAmount.toInt256() + int256(lp.positionSize).wadMul(reductionRatio.toInt256())).toInt128(),
                 cumFundingRate: 0
-            }),
-            proposedAmount,
-            minAmount,
-            isLiquidation
-        );
-        profit += pnl;
+            });
+            (pnl, tradingFeesPayed, quoteProceeds) =
+                _settleLpPosition(positionToClose, proposedAmount, minAmount, isLiquidation);
+            profit += pnl;
+        }
 
         // adjust balances to new position
         {
             lp.openNotional = (lp.openNotional + quoteAmount.toInt256()).toInt128();
             lp.positionSize = (lp.positionSize + baseAmount.toInt256()).toInt128();
             lp.liquidityBalance = (lp.liquidityBalance - liquidityAmountToRemove).toUint128();
-            lp.cumFundingRate = globalP.cumFundingRate;
 
             // if position has been closed entirely, delete it from the state
             if (!_isLpPositionOpen(lp)) {
                 delete lpPosition[account];
+                isPositionClosed = true;
             }
 
-            globalP.totalQuoteProvided -= quoteAmount;
+            globalPosition.totalQuoteProvided -= quoteAmount.toUint128();
+            globalPosition.totalBaseProvided -= baseAmount.toUint128();
         }
     }
 
     /// @notice Settle funding payments for a liquidity provider
     /// @param account Liquidity Provider
     /// @return fundingPayments Pending funding payments
-    function settleLp(address account)
+    /// @notice Update the cumulative funding rate for the LP and return pending funding payments
+    function settleLpFunding(address account)
         external
         override
         whenNotPaused
@@ -394,16 +417,12 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         }
 
         // settle lp funding rate
-        int256 virtualPositionSize = _getVBasePositionAfterVirtualWithdrawal(lp, globalP);
+        fundingPayments =
+            _getLpFundingPayments(lp.cumFundingPerLpToken, globalP.cumFundingPerLpToken, lp.liquidityBalance);
 
-        fundingPayments = _getFundingPayments(
-            virtualPositionSize > 0,
-            lp.cumFundingRate,
-            globalP.cumFundingRate,
-            virtualPositionSize.abs()
-        );
+        emit FundingPaid(account, fundingPayments, globalP.cumFundingPerLpToken, lp.cumFundingPerLpToken, false);
 
-        lp.cumFundingRate = globalP.cumFundingRate;
+        lp.cumFundingPerLpToken = globalP.cumFundingPerLpToken;
 
         return fundingPayments;
     }
@@ -413,48 +432,70 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
     /* ************* */
 
     /// @notice Simulate removing liquidity from the curve pool to increase the slippage
-    ///         and then performs a single swap on the curve pool. Returns amount returned with revert message
+    ///         and then performs a single swap on the curve pool. Returns the proceeds from the trade with revert message
     /// @dev Used to compute the proposedAmount parameter needed for removing liquidity
     /// @dev To be statically called from `ClearingHouseViewer.removeLiquiditySwap`
     /// @param account Liquidity Provider
     /// @param liquidityAmountToRemove Amount of liquidity to be removed from the pool. 18 decimals
     /// @param minVTokenAmounts Minimum amount of virtual tokens [vQuote, vBase] to withdraw from the curve pool. 18 decimals
-    /// @param proposedAmount Amount of tokens to be sold, in vBase if LONG, in vQuote if SHORT. 18 decimals
+    /// @param func Encoded function call to call on the curve viewer contract
     function removeLiquiditySwap(
         address account,
         uint256 liquidityAmountToRemove,
         uint256[2] calldata minVTokenAmounts,
-        uint256 proposedAmount
+        bytes calldata func
     ) external override {
         LibPerpetual.LiquidityProviderPosition storage lp = lpPosition[account];
 
         // increase slippage by removing liquidity & swap tokens
         _removeLiquidity(lp, globalPosition, liquidityAmountToRemove, minVTokenAmounts);
-        uint256 baseProceeds = curveCryptoViews.get_dy_ex_fees(market, VQUOTE_INDEX, VBASE_INDEX, proposedAmount);
 
-        // Revert with baseProceeds
+        // slither-disable-next-line low-level-calls
+        (bool status, bytes memory response) = address(curveCryptoViews).staticcall(func);
+        if (!status) revert("staticcall in perpetual contract failed");
+
+        // response is uint256 not bytes
+        uint256 proceeds = abi.decode(response, (uint256));
+
+        // Revert with proceeds
         // adjusted from https://github.com/Uniswap/v3-periphery/blob/5bcdd9f67f9394f3159dad80d0dd01d37ca08c66/contracts/lens/Quoter.sol#L60-L64
         // slither-disable-next-line assembly
         assembly {
-            let b := mload(0x40)
-            mstore(b, baseProceeds)
-            revert(b, 32)
+            let ptr := mload(0x40)
+            mstore(ptr, proceeds)
+            revert(ptr, 32)
         }
+    }
+
+    /// @notice Update the global state of the perpetual market
+    /// @dev Can be called by offchain worker to update market conditions
+    function updateGlobalState() external override whenNotPaused {
+        _updateGlobalState();
     }
 
     /* ****************** */
     /*     Governance     */
     /* ****************** */
 
+    /// @notice Allow/block trading operations tapping into the liquidity (i.e. opening and extending positions)
+    /// @notice Meant to be called once an agreed uppon minimum liquidity level is reached (or dropped back to)
+    /// @dev Can only be called by Emergency Admin
+    /// @param toPause Whether to pause or not trading expansion operations
+    function toggleTradingExpansionPause(bool toPause) external override onlyRole(EMERGENCY_ADMIN) {
+        isTradingExpansionAllowed = toPause;
+
+        emit TradingExpansionPauseToggled(msg.sender, toPause);
+    }
+
     /// @notice Pause the contract
-    /// @dev Can only be called by Manager
-    function pause() external override onlyRole(MANAGER) {
+    /// @dev Can only be called by Emergency Admin
+    function pause() external override onlyRole(EMERGENCY_ADMIN) {
         _pause();
     }
 
     /// @notice Unpause the contract
-    /// @dev Can only be called by Manager
-    function unpause() external override onlyRole(MANAGER) {
+    /// @dev Can only be called by Emergency Admin
+    function unpause() external override onlyRole(EMERGENCY_ADMIN) {
         _unpause();
     }
 
@@ -462,19 +503,25 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
     /// @dev Can only be called by Governance
     /// @param params New Economic parameters
     function setParameters(PerpetualParams memory params) public override onlyRole(GOVERNANCE) {
-        if (params.sensitivity < 2e17 || params.sensitivity > 10e18)
+        if (params.sensitivity < 2e17 || params.sensitivity > 10e18) {
             revert Perpetual_SensitivityInvalid(params.sensitivity);
-        if (params.insuranceFee < 1e14 || params.insuranceFee > 1e16)
+        }
+        if (params.insuranceFee < 1e14 || params.insuranceFee > 1e16) {
             revert Perpetual_InsuranceFeeInvalid(params.insuranceFee);
-        if (params.lpDebtCoef < 1e18 || params.lpDebtCoef > 20e18)
+        }
+        if (params.lpDebtCoef < 1e18 || params.lpDebtCoef > 20e18) {
             revert Perpetual_LpDebtCoefInvalid(params.lpDebtCoef);
+        }
         if (params.maxBlockTradeAmount < 100e18) revert Perpetual_MaxBlockAmountInvalid(params.maxBlockTradeAmount);
-        if (params.twapFrequency < 1 minutes || params.twapFrequency > 60 minutes)
+        if (params.twapFrequency < 1 minutes || params.twapFrequency > 60 minutes) {
             revert Perpetual_TwapFrequencyInvalid(params.twapFrequency);
-        if (params.lockPeriod < 10 minutes || params.lockPeriod > 30 days)
+        }
+        if (params.lockPeriod < 10 minutes || params.lockPeriod > 30 days) {
             revert Perpetual_LockPeriodInvalid(params.lockPeriod);
-        if (params.riskWeight < 1e18 || params.riskWeight > 50e18)
+        }
+        if (params.riskWeight < 1e18 || params.riskWeight > 50e18) {
             revert Perpetual_RiskWeightInvalid(params.riskWeight);
+        }
 
         riskWeight = params.riskWeight;
         maxLiquidityProvided = params.maxLiquidityProvided;
@@ -514,7 +561,20 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
 
     /// @notice Return the last traded price (used for TWAP)
     function marketPrice() public view override returns (uint256) {
-        return market.last_prices();
+        if (getTotalLiquidityProvided() == 0) {
+            return market.last_prices();
+        } else {
+            // take the average of a small long / short trade
+            // as a best estimate of the market (spot) price
+            uint256 quoteAmountSold = 1e17;
+            uint256 baseAmountSold = quoteAmountSold.wadDiv(indexPrice().toUint256());
+            uint256 baseAmountBought =
+                curveCryptoViews.get_dy_no_fee_deduct(market, VQUOTE_INDEX, VBASE_INDEX, quoteAmountSold);
+            uint256 quoteAmountBought =
+                curveCryptoViews.get_dy_no_fee_deduct(market, VBASE_INDEX, VQUOTE_INDEX, baseAmountSold);
+            // return the average of the two prices
+            return (quoteAmountBought.wadDiv(baseAmountSold) + quoteAmountSold.wadDiv(baseAmountBought)) / 2;
+        }
     }
 
     /// @notice Get the market total liquidity provided to the Crypto Swap pool
@@ -527,23 +587,6 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
     /* ****************** */
 
     // Trader
-
-    /// @notice Get the approximate funding payments for a trader
-    /// @param account Trader
-    function getTraderFundingPayments(address account) external view override returns (int256 upcomingFundingPayment) {
-        LibPerpetual.TraderPosition storage trader = traderPosition[account];
-
-        if (!_isTraderPositionOpen(trader)) {
-            return 0;
-        }
-
-        LibPerpetual.GlobalPosition storage globalP = globalPosition;
-
-        int256 traderPositionSize = trader.positionSize;
-        bool isLong = traderPositionSize > 0;
-
-        return _getFundingPayments(isLong, trader.cumFundingRate, globalP.cumFundingRate, traderPositionSize.abs());
-    }
 
     /// @notice Get the unrealized profit and loss of a trader
     /// @param account Trader
@@ -601,29 +644,6 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
     }
 
     // LP
-
-    /// @notice Get the approximate funding payments for a LP
-    /// @param account Address of the liquidity provider
-    function getLpFundingPayments(address account) external view override returns (int256 upcomingFundingPayment) {
-        LibPerpetual.LiquidityProviderPosition storage lp = lpPosition[account];
-
-        if (!_isLpPositionOpen(lp)) {
-            return 0;
-        }
-
-        LibPerpetual.GlobalPosition storage globalP = globalPosition;
-        LibPerpetual.TraderPosition memory activeLpPosition = _getLpPositionAfterWithdrawal(lp, globalP);
-
-        bool isLong = activeLpPosition.positionSize > 0;
-
-        return
-            _getFundingPayments(
-                isLong,
-                activeLpPosition.cumFundingRate,
-                globalP.cumFundingRate,
-                int256(activeLpPosition.positionSize).abs()
-            );
-    }
 
     /// @notice Get the trading fees earned by a LP
     /// @param account Address of the liquidity provider
@@ -687,7 +707,7 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
     function getLpOpenNotional(address account) external view override returns (int256) {
         LibPerpetual.LiquidityProviderPosition storage lp = lpPosition[account];
 
-        return int256(lp.openNotional).abs();
+        return int256(lp.openNotional);
     }
 
     /// @notice Whether or not a LP position is opened
@@ -714,8 +734,12 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
             currentBlockTradeAmount: 0,
             totalTradingFeesGrowth: 0,
             totalQuoteProvided: 0,
+            totalBaseProvided: 0,
             totalBaseFeesGrowth: 0,
-            totalQuoteFeesGrowth: 0
+            totalQuoteFeesGrowth: 0,
+            traderLongs: 0,
+            traderShorts: 0,
+            cumFundingPerLpToken: 0
         });
     }
 
@@ -723,18 +747,9 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
     /*  Internal (Trading) */
     /* ****************** */
 
-    function _extendPosition(
-        address account,
-        uint256 amount,
-        LibPerpetual.Side direction,
-        uint256 minAmount
-    )
+    function _extendPosition(address account, uint256 amount, LibPerpetual.Side direction, uint256 minAmount)
         internal
-        returns (
-            int256 quoteProceeds,
-            int256 baseProceeds,
-            int256 tradingFees
-        )
+        returns (int256 quoteProceeds, int256 baseProceeds, int256 tradingFees)
     {
         /*
             if direction = LONG
@@ -766,21 +781,14 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         // update position
         trader.openNotional = (trader.openNotional + quoteProceeds).toInt128();
         trader.positionSize = (trader.positionSize + baseProceeds).toInt128();
+        trader.cumFundingRate = globalPosition.cumFundingRate;
 
         return (quoteProceeds, baseProceeds, tradingFees);
     }
 
-    function _extendPositionOnMarket(
-        uint256 proposedAmount,
-        bool isLong,
-        uint256 minAmount
-    )
+    function _extendPositionOnMarket(uint256 proposedAmount, bool isLong, uint256 minAmount)
         internal
-        returns (
-            int256 quoteProceeds,
-            int256 baseProceeds,
-            int256 tradingFees
-        )
+        returns (int256 quoteProceeds, int256 baseProceeds, int256 tradingFees)
     {
         /*  if long:
                 quoteProceeds = vQuote traded   to market   (or "- vQuote")
@@ -795,53 +803,42 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
             quoteProceeds = -proposedAmount.toInt256();
             (bought, feePer) = _quoteForBase(proposedAmount, minAmount);
             baseProceeds = bought.toInt256();
+            globalPosition.traderLongs += bought.toUint128();
         } else {
             (bought, feePer) = _baseForQuote(proposedAmount, minAmount);
             baseProceeds = -proposedAmount.toInt256();
             quoteProceeds = bought.toInt256();
+            globalPosition.traderShorts += proposedAmount.toUint128();
         }
 
-        tradingFees = -_chargeQuoteFees(quoteProceeds, feePer.toInt256());
+        tradingFees = _chargeQuoteFees(quoteProceeds, feePer.toInt256());
 
         return (quoteProceeds, baseProceeds, tradingFees);
     }
 
-    function _reducePosition(
-        address account,
-        uint256 proposedAmount,
-        uint256 minAmount
-    )
+    function _reducePosition(address account, uint256 proposedAmount, uint256 minAmount)
         internal
-        returns (
-            int256 quoteProceeds,
-            int256 baseProceeds,
-            int256 pnl
-        )
+        returns (int256 quoteProceeds, int256 baseProceeds, int256 pnl, int256 tradingFeesPayed, bool isPositionClosed)
     {
         /*
         after opening the position:
-
             trader has long position:
-                openNotional = vQuote traded   to market   ( < 0)
-                positionSize = vBase  received from market ( > 0)
+                openNotional = vQuote traded   to market   (< 0)
+                positionSize = vBase  received from market (> 0)
             trader has short position
-                openNotional = vQuote received from market ( > 0)
-                positionSize = vBase  traded   to market   ( < 0)
+                openNotional = vQuote received from market (> 0)
+                positionSize = vBase  traded   to market   (< 0)
 
         to close the position:
 
             trader has long position:
-                @proposedAmount := amount of vBase used to reduce the position (must be below user.positionSize)
-                => User trades the vBase tokens with the curve pool for vQuote tokens
+                @proposedAmount := amount of vBase used to reduce the position
+                => user trades the vBase tokens with the curve pool for vQuote tokens
 
             trader has short position:
-                @proposedAmount := amount of vQuote required to repay the vBase debt (must be below 1.5 x market value of user.positionSize)
-                => User incurred vBase debt when opening a position and must now trade enough
-                  vQuote with the curve pool to repay his vBase debt in full.
-                => Remaining balances can be traded with the market for vQuote.
-
-                @audit Note that this mechanism can be exploited by inserting a large value here, since traders
-                will encounter slippage on the curve trading pool. We set a limit of 1.5 x market value in _checkProposedAmount()
+                @proposedAmount := amount of vQuote required to repay the vBase debt
+                => user incurred vBase debt when opening a position and must now trade enough
+                  vQuote with the curve pool to repay his vBase debt in full
 
         */
 
@@ -849,7 +846,7 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         if (!_isTraderPositionOpen(trader)) revert Perpetual_NoOpenPosition();
 
         int256 addedOpenNotional;
-        (baseProceeds, quoteProceeds, addedOpenNotional, pnl) = _reducePositionOnMarket(
+        (baseProceeds, quoteProceeds, addedOpenNotional, pnl, tradingFeesPayed) = _reducePositionOnMarket(
             trader,
             !(trader.positionSize >= 0), /* trade direction is reversed to current position */
             proposedAmount,
@@ -863,9 +860,10 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         // if position has been closed entirely, delete it from the state
         if (!_isTraderPositionOpen(trader)) {
             delete traderPosition[account];
+            isPositionClosed = true;
         }
 
-        return (quoteProceeds, baseProceeds, pnl);
+        return (quoteProceeds, baseProceeds, pnl, tradingFeesPayed, isPositionClosed);
     }
 
     /// @dev Used both by traders closing their own positions and liquidators liquidating other people's positions
@@ -884,40 +882,45 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
             int256 baseProceeds,
             int256 quoteProceeds,
             int256 addedOpenNotional,
-            int256 pnl
+            int256 pnl,
+            int256 tradingFeesPayed
         )
     {
         int256 positionSize = int256(user.positionSize);
 
-        uint256 bought;
         uint256 feePer;
-        if (isLong) {
-            quoteProceeds = -(proposedAmount.toInt256());
-            (bought, feePer) = _quoteForBase(proposedAmount, minAmount);
-            baseProceeds = bought.toInt256();
-        } else {
-            (bought, feePer) = _baseForQuote(proposedAmount, minAmount);
-            quoteProceeds = bought.toInt256();
-            baseProceeds = -(proposedAmount.toInt256());
+        {
+            uint256 bought;
+            if (isLong) {
+                quoteProceeds = -(proposedAmount.toInt256());
+                (bought, feePer) = _quoteForBase(proposedAmount, minAmount);
+                baseProceeds = bought.toInt256();
+                globalPosition.traderShorts -= bought.min(globalPosition.traderShorts).toUint128(); // TODO: get rid of when we only enforce upper bound on settlement
+            } else {
+                (bought, feePer) = _baseForQuote(proposedAmount, minAmount);
+                quoteProceeds = bought.toInt256();
+                baseProceeds = -(proposedAmount.toInt256());
+                globalPosition.traderLongs -= proposedAmount.min(globalPosition.traderLongs).toUint128();
+            }
+
+            int256 netBasePosition = baseProceeds + positionSize;
+            if (netBasePosition.wadMul(indexPrice()).abs() <= 1e17) {
+                _roundDust(netBasePosition);
+                baseProceeds -= netBasePosition;
+            }
         }
 
-        int256 netPositionSize = baseProceeds + positionSize;
-        if (netPositionSize > 0 && netPositionSize <= 1e17) {
-            _donate(netPositionSize.toUint256());
-            baseProceeds -= netPositionSize;
-        }
-
-        bool isReducingPosition = positionSize > 0
-            ? (baseProceeds + positionSize) >= 0
-            : (baseProceeds + positionSize) <= 0;
+        bool isReducingPosition =
+            positionSize > 0 ? (baseProceeds + positionSize) >= 0 : (baseProceeds + positionSize) <= 0;
 
         if (!isReducingPosition) revert Perpetual_AttemptReversePosition();
 
         // calculate reduction ratio
         uint256 realizedReductionRatio = (baseProceeds.abs().wadDiv(positionSize.abs())).toUint256();
+        tradingFeesPayed = _chargeQuoteFees(quoteProceeds, feePer.toInt256());
 
         addedOpenNotional = int256(-user.openNotional).wadMul(realizedReductionRatio.toInt256());
-        pnl = quoteProceeds - addedOpenNotional - _chargeQuoteFees(quoteProceeds, feePer.toInt256());
+        pnl = quoteProceeds - addedOpenNotional - tradingFeesPayed;
     }
 
     function _quoteForBase(uint256 quoteAmount, uint256 minAmount)
@@ -925,7 +928,7 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         returns (uint256 vBaseExFees, uint256 feePer)
     {
         // get swap excluding fees
-        vBaseExFees = curveCryptoViews.get_dy_ex_fees(market, VQUOTE_INDEX, VBASE_INDEX, quoteAmount);
+        vBaseExFees = curveCryptoViews.get_dy_no_fee_deduct(market, VQUOTE_INDEX, VBASE_INDEX, quoteAmount);
 
         // perform swap
 
@@ -935,8 +938,8 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
 
         // adjust for fees
         uint256 feesGrowth = vBaseExFees - vBaseReceived;
-        globalPosition.totalBaseFeesGrowth = (globalPosition.totalBaseFeesGrowth +
-            feesGrowth.wadDiv(vBase.totalSupply())).toUint128();
+        globalPosition.totalBaseFeesGrowth =
+            (globalPosition.totalBaseFeesGrowth + feesGrowth.wadDiv(vBase.totalSupply())).toUint128();
         feePer = feesGrowth.wadDiv(vBaseExFees);
     }
 
@@ -945,7 +948,7 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         returns (uint256 vQuoteExFees, uint256 feePer)
     {
         // get swap excluding fees
-        vQuoteExFees = curveCryptoViews.get_dy_ex_fees(market, VBASE_INDEX, VQUOTE_INDEX, baseAmount);
+        vQuoteExFees = curveCryptoViews.get_dy_no_fee_deduct(market, VBASE_INDEX, VQUOTE_INDEX, baseAmount);
 
         // perform swap
 
@@ -955,16 +958,15 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
 
         // adjust for fees
         uint256 feesGrowth = vQuoteExFees - vQuoteReceived;
-        globalPosition.totalQuoteFeesGrowth = (globalPosition.totalQuoteFeesGrowth +
-            feesGrowth.wadDiv(vQuote.totalSupply())).toUint128(); // @dev: totalSupply is safer than balanceOf
+        globalPosition.totalQuoteFeesGrowth =
+            (globalPosition.totalQuoteFeesGrowth + feesGrowth.wadDiv(vQuote.totalSupply())).toUint128(); // @dev: totalSupply is safer than balanceOf
         feePer = feesGrowth.wadDiv(vQuoteExFees);
     }
 
     /// @notice charge trading fee on notional amount
     function _chargeQuoteFees(int256 quoteProceeds, int256 feePer) internal returns (int256) {
         int256 feesPayed = quoteProceeds.abs().wadMul(feePer);
-        globalPosition.totalTradingFeesGrowth += (feesPayed.toUint256().wadDiv(globalPosition.totalQuoteProvided))
-            .toUint128(); // rate of return of this trade
+        globalPosition.totalTradingFeesGrowth += (feesPayed.toUint256().wadDiv(getTotalLiquidityProvided())).toUint128(); // rate of return of this trade
 
         return feesPayed;
     }
@@ -985,8 +987,9 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
 
         market.remove_liquidity(liquidityAmountToRemove, minVTokenAmounts);
 
-        if (vQuote.balanceOf(address(market)) <= 1 || vBase.balanceOf(address(market)) <= 1)
+        if (vQuote.balanceOf(address(market)) <= 1 || vBase.balanceOf(address(market)) <= 1) {
             revert Perpetual_MarketBalanceTooLow();
+        }
 
         uint256 vQuoteBalanceAfter = vQuote.balanceOf(address(this));
         uint256 vBaseBalanceAfter = vBase.balanceOf(address(this));
@@ -1007,26 +1010,22 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         uint256 proposedAmount,
         uint256 minAmount,
         bool isLiquidation
-    ) internal returns (int256 pnl, int256 quoteProceeds) {
+    ) internal returns (int256 pnl, int256 tradingFeesPayed, int256 quoteProceeds) {
         int256 baseProceeds;
+        int256 addedOpenNotional;
 
-        (baseProceeds, quoteProceeds, , pnl) = _reducePositionOnMarket(
-            positionToClose,
-            !(positionToClose.positionSize > 0),
-            proposedAmount,
-            minAmount
-        );
+        (baseProceeds, quoteProceeds, addedOpenNotional, pnl, tradingFeesPayed) =
+            _reducePositionOnMarket(positionToClose, !(positionToClose.positionSize >= 0), proposedAmount, minAmount);
 
         if (!isLiquidation) {
             // check max deviation
             _updateCurrentBlockTradeAmount(quoteProceeds.abs().toUint256());
             if (!_checkBlockTradeAmount()) revert Perpetual_ExcessiveBlockTradeAmount();
         }
+        positionToClose.positionSize = (positionToClose.positionSize + baseProceeds).toInt128();
+        positionToClose.openNotional = (positionToClose.openNotional + addedOpenNotional).toInt128();
 
-        int256 netBasePosition = positionToClose.positionSize + baseProceeds;
-
-        if (netBasePosition < 0) revert Perpetual_LPOpenPosition();
-        if (netBasePosition > 0 && netBasePosition <= 1e17) _donate(netBasePosition.toUint256());
+        if (_isTraderPositionOpen(positionToClose)) revert Perpetual_LPOpenPosition();
     }
 
     function _settleLpTradingFees(
@@ -1048,16 +1047,24 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         LibPerpetual.GlobalPosition storage globalP = globalPosition;
         uint256 currentTime = block.timestamp;
 
-        int256 currentTraderPremium = (int256(marketTwap - oracleTwap)).wadDiv(oracleTwap);
+        int256 currentTraderPremium = marketTwap - oracleTwap;
         int256 timePassedSinceLastTrade = (currentTime - globalP.timeOfLastTrade).toInt256();
 
-        int128 fundingRate = ((sensitivity.wadMul(currentTraderPremium) * timePassedSinceLastTrade) / 1 days)
-            .toInt128();
+        int256 fundingRate = ((sensitivity.wadMul(currentTraderPremium) * timePassedSinceLastTrade) / 1 days); // @dev: in fixed number x seconds / seconds = fixed number
 
-        globalP.cumFundingRate = globalP.cumFundingRate + fundingRate;
+        globalP.cumFundingRate = globalP.cumFundingRate + fundingRate.toInt128();
         globalP.timeOfLastTrade = currentTime.toUint64();
 
-        emit FundingRateUpdated(globalP.cumFundingRate, fundingRate);
+        int256 tokenSupply =
+            getTotalLiquidityProvided().toInt256() > 0 ? getTotalLiquidityProvided().toInt256() : int256(1e18);
+
+        int256 totalTraderPositionSize =
+            uint256(globalP.traderLongs).toInt256() - uint256(globalP.traderShorts).toInt256();
+        globalP.cumFundingPerLpToken += totalTraderPositionSize >= 0
+            ? -fundingRate.wadMul(totalTraderPositionSize).wadDiv(tokenSupply).toInt128() // long pay funding
+            : fundingRate.wadMul(totalTraderPositionSize).wadDiv(tokenSupply).toInt128(); // short receives funding
+
+        emit FundingRateUpdated(globalP.cumFundingRate, globalP.cumFundingPerLpToken, fundingRate);
     }
 
     function _updateCurrentBlockTradeAmount(uint256 vQuoteAmount) internal {
@@ -1069,6 +1076,9 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
     }
 
     function _updateTwap() internal {
+        /*
+        @dev: To update the twap we multiply a 18 decimals fixed point number with a time variable (in seconds).
+        */
         uint256 currentTime = block.timestamp;
         int256 timeElapsed = (currentTime - globalPosition.timeOfLastTrade).toInt256();
 
@@ -1079,11 +1089,11 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         // will overflow in ~3000 years
         // update cumulative chainlink price feed
         int256 latestChainlinkPrice = indexPrice();
-        oracleCumulativeAmount += latestChainlinkPrice * timeElapsed;
+        oracleCumulativeAmount += latestChainlinkPrice * timeElapsed; // @dev: in fixed number x seconds
 
         // update cumulative market price feed
         int256 latestMarketPrice = marketPrice().toInt256();
-        marketCumulativeAmount += latestMarketPrice * timeElapsed;
+        marketCumulativeAmount += latestMarketPrice * timeElapsed; // @dev: in fixed number x seconds
 
         uint256 timeElapsedSinceBeginningOfPeriod = block.timestamp - globalPosition.timeOfLastTwapUpdate;
 
@@ -1093,12 +1103,16 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
             */
 
             // calculate chainlink twap
-            oracleTwap = ((oracleCumulativeAmount - oracleCumulativeAmountAtBeginningOfPeriod) /
-                timeElapsedSinceBeginningOfPeriod.toInt256()).toInt128();
+            oracleTwap = (
+                (oracleCumulativeAmount - oracleCumulativeAmountAtBeginningOfPeriod)
+                    / timeElapsedSinceBeginningOfPeriod.toInt256()
+            ).toInt128(); // @dev: in fixed number x seconds / seconds = fixed number
 
             // calculate market twap
-            marketTwap = ((marketCumulativeAmount - marketCumulativeAmountAtBeginningOfPeriod) /
-                timeElapsedSinceBeginningOfPeriod.toInt256()).toInt128();
+            marketTwap = (
+                (marketCumulativeAmount - marketCumulativeAmountAtBeginningOfPeriod)
+                    / timeElapsedSinceBeginningOfPeriod.toInt256()
+            ).toInt128(); // @dev: in fixed number x seconds / seconds = fixed number
 
             // reset cumulative amount and timestamp
             oracleCumulativeAmountAtBeginningOfPeriod = oracleCumulativeAmount;
@@ -1109,9 +1123,13 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         }
     }
 
-    /************************** */
+    /**
+     *
+     */
     /* Internal  (Misc)         */
-    /************************** */
+    /**
+     *
+     */
 
     /// @notice Update Twap, Funding Rate and reset current block trade amount
     function _updateGlobalState() internal whenNotPaused {
@@ -1127,21 +1145,30 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         }
     }
 
-    /// @notice Donate base tokens ("dust") to governance
-    /// @dev These donations happen without increasing the Vault balance of the ClearingHouse,
-    ///      as it has no Vault balance.
-    function _donate(uint256 baseAmount) internal {
-        int256 newClearingHousePositionSize = traderPosition[address(clearingHouse)].positionSize +
-            baseAmount.toInt256();
+    /// @notice Round the base position to zero and assign the difference ("dust") to the insurance
+    /// @notice _roundDust is called because `getProposedAmount` cant accurately estimate the
+    ///         the vBase amount to close a short position.
+    /// @dev PnL of rounding base tokens is settled by calling `sellDust` in ClearingHouse.
+    /// @param baseAmount The amount of base tokens which will be credited/debited to the insurance.
+    function _roundDust(int256 baseAmount) internal {
+        LibPerpetual.TraderPosition storage insurance = traderPosition[address(clearingHouse)];
 
-        traderPosition[address(clearingHouse)].positionSize = newClearingHousePositionSize.toInt128();
+        int256 newClearingHousePositionSize = insurance.positionSize + baseAmount;
+        insurance.positionSize = newClearingHousePositionSize.toInt128();
+
+        // settle funding payments into openNotional
+        insurance.openNotional += settleTraderFunding(address(clearingHouse)).toInt128();
 
         emit DustGenerated(baseAmount);
     }
 
-    /************************** */
+    /**
+     *
+     */
     /* Internal Viewer (Trading) */
-    /************************** */
+    /**
+     *
+     */
 
     /// @notice true if trade amount lower than max trade amount per block, false otherwise
     function _checkBlockTradeAmount() internal view returns (bool) {
@@ -1149,7 +1176,7 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
     }
 
     /// @notice Calculate missed funding payments
-    function _getFundingPayments(
+    function _getTraderFundingPayments(
         bool isLong,
         int256 userCumFundingRate,
         int256 globalCumFundingRate,
@@ -1163,47 +1190,44 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
             comment: Making an negative funding payment is equivalent to receiving a positive one.
         */
         if (userCumFundingRate != globalCumFundingRate) {
-            int256 upcomingFundingRate = isLong
-                ? userCumFundingRate - globalCumFundingRate
-                : globalCumFundingRate - userCumFundingRate;
+            int256 upcomingFundingRate =
+                isLong ? userCumFundingRate - globalCumFundingRate : globalCumFundingRate - userCumFundingRate;
 
             // fundingPayments = fundingRate * vBaseAmountToSettle
             upcomingFundingPayment = upcomingFundingRate.wadMul(vBaseAmountToSettle);
         }
     }
 
+    function _getLpFundingPayments(
+        int256 userCumFundingPerLpToken,
+        int256 globalCumFundingPerLpToken,
+        uint256 userLiquidityBalance
+    ) internal pure returns (int256 upcomingFundingPayment) {
+        upcomingFundingPayment =
+            (globalCumFundingPerLpToken - userCumFundingPerLpToken).wadMul(userLiquidityBalance.toInt256());
+    }
+
     function _getUnrealizedPnL(LibPerpetual.TraderPosition memory trader) internal view returns (int256) {
         int256 oraclePrice = indexPrice();
         int256 vQuoteVirtualProceeds = int256(trader.positionSize).wadMul(oraclePrice);
-        int256 tradingFees = (vQuoteVirtualProceeds.abs() * market.out_fee().toInt256()) / CURVE_TRADING_FEE_PRECISION; // @dev: take upper bound on the trading fees
+
+        // convert fees to 18 decimals precision
+        // @dev: take upper bound (out_fee) on the trading fees
+        uint256 feesInWad = market.out_fee() * 10 ** (18 - CURVE_TRADING_FEE_DECIMALS);
+        int256 tradingFees = vQuoteVirtualProceeds.abs().wadMul(feesInWad.toInt256());
 
         // in the case of a LONG, trader.openNotional is negative but vQuoteVirtualProceeds is positive
         // in the case of a SHORT, trader.openNotional is positive while vQuoteVirtualProceeds is negative
         return int256(trader.openNotional) + vQuoteVirtualProceeds - tradingFees;
     }
 
-    /***************************** */
+    /**
+     *
+     */
     /* Internal Viewer (Liquidity) */
-    /***************************** */
-
-    function _getVBasePositionAfterVirtualWithdrawal(
-        LibPerpetual.LiquidityProviderPosition storage lp,
-        LibPerpetual.GlobalPosition storage globalP
-    ) internal view returns (int256 positionSizeAfterWithdrawal) {
-        // LP position
-        uint256 totalLiquidityProvided = getTotalLiquidityProvided();
-
-        // adjust for trading fees earned
-        (uint256 baseTokensExFees, ) = _getVirtualTokensWithdrawnFromCurvePool(
-            totalLiquidityProvided,
-            lp.liquidityBalance,
-            market.balances(VBASE_INDEX),
-            lp.totalBaseFeesGrowth,
-            globalP.totalBaseFeesGrowth
-        );
-        positionSizeAfterWithdrawal = baseTokensExFees.toInt256() + lp.positionSize;
-    }
-
+    /**
+     *
+     */
     function _getVirtualTokensEarnedAsCurveTradingFees(
         LibPerpetual.LiquidityProviderPosition storage lp,
         LibPerpetual.GlobalPosition storage globalP
@@ -1230,6 +1254,7 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         baseFeesEarned = baseTokensInclFees - baseTokensExFees;
     }
 
+    // calculate how many virtual tokens could be removed right now
     function _getVirtualTokensWithdrawnFromCurvePool(
         uint256 totalLiquidityProvided,
         uint256 lpTokensLiquidityProvider,
@@ -1237,7 +1262,14 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         uint256 userVirtualTokenGrowthRate,
         uint256 globalVirtualTokenTotalGrowth
     ) internal pure returns (uint256 tokensExFees, uint256 tokensInclFees) {
-        tokensInclFees = (curvePoolBalance * lpTokensLiquidityProvider) / totalLiquidityProvided - 1;
+        if (totalLiquidityProvided == 0) {
+            return (0, 0);
+        }
+
+        // dev: use math equations from cryptoswap.remove_liquidity() here
+        tokensInclFees = ((lpTokensLiquidityProvider - 1) * curvePoolBalance) / totalLiquidityProvided;
+
+        // remove all fees earned in the pool
         tokensExFees = tokensInclFees.wadDiv(1e18 + globalVirtualTokenTotalGrowth - userVirtualTokenGrowthRate);
     }
 
@@ -1246,10 +1278,7 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         LibPerpetual.LiquidityProviderPosition storage lp,
         LibPerpetual.GlobalPosition storage globalP
     ) internal view returns (uint256) {
-        return
-            int256(lp.openNotional).abs().toUint256().wadMul(
-                globalP.totalTradingFeesGrowth - lp.totalTradingFeesGrowth
-            );
+        return uint256(lp.liquidityBalance).wadMul(globalP.totalTradingFeesGrowth - lp.totalTradingFeesGrowth);
     }
 
     /// @notice Get the (active) position of a liquidity provider after withdrawing liquidity
@@ -1260,7 +1289,7 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
         // LP position
         uint256 totalLiquidityProvided = getTotalLiquidityProvided();
 
-        (uint256 quoteTokensExFees, ) = _getVirtualTokensWithdrawnFromCurvePool(
+        (uint256 quoteTokensExFees,) = _getVirtualTokensWithdrawnFromCurvePool(
             totalLiquidityProvided,
             lp.liquidityBalance,
             market.balances(VQUOTE_INDEX),
@@ -1268,7 +1297,7 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
             globalP.totalQuoteFeesGrowth
         );
 
-        (uint256 baseTokensExFees, ) = _getVirtualTokensWithdrawnFromCurvePool(
+        (uint256 baseTokensExFees,) = _getVirtualTokensWithdrawnFromCurvePool(
             totalLiquidityProvided,
             lp.liquidityBalance,
             market.balances(VBASE_INDEX),
@@ -1276,15 +1305,14 @@ contract Perpetual is IPerpetual, Pausable, IncreAccessControl {
             globalP.totalBaseFeesGrowth
         );
 
-        return
-            LibPerpetual.TraderPosition({
-                openNotional: (lp.openNotional + quoteTokensExFees.toInt256()).toInt128(),
-                positionSize: (lp.positionSize + baseTokensExFees.toInt256()).toInt128(),
-                cumFundingRate: lp.cumFundingRate
-            });
+        return LibPerpetual.TraderPosition({
+            openNotional: (lp.openNotional + quoteTokensExFees.toInt256()).toInt128(),
+            positionSize: (lp.positionSize + baseTokensExFees.toInt256()).toInt128(),
+            cumFundingRate: 0
+        });
     }
 
-    function _isTraderPositionOpen(LibPerpetual.TraderPosition storage trader) internal view returns (bool) {
+    function _isTraderPositionOpen(LibPerpetual.TraderPosition memory trader) internal pure returns (bool) {
         if (trader.openNotional != 0 || trader.positionSize != 0) {
             return true;
         }

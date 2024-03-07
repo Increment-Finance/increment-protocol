@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.15;
+pragma solidity ^0.8.16;
 
 // libraries
-import {PRBMathUD60x18} from "prb-math/contracts/PRBMathUD60x18.sol";
-import {PRBMathSD59x18} from "prb-math/contracts/PRBMathSD59x18.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import {SignedMath} from "@openzeppelin/contracts/utils/math/SignedMath.sol";
+import {PRBMathUD60x18} from "../../lib/prb-math/contracts/PRBMathUD60x18.sol";
+import {PRBMathSD59x18} from "../../lib/prb-math/contracts/PRBMathSD59x18.sol";
+import {SafeCast} from "../../lib/openzeppelin-contracts/contracts/utils/math/SafeCast.sol";
+import {Math} from "../../lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
+import {SignedMath} from "../../lib/openzeppelin-contracts/contracts/utils/math/SignedMath.sol";
 
 /*
  * To be used if `b` decimals make `b` larger than what it would be otherwise.
@@ -15,9 +15,9 @@ import {SignedMath} from "@openzeppelin/contracts/utils/math/SignedMath.sol";
  *
  * In our case, we get exchange rates with a 18 decimal precision
  * (Solidity doesn't support decimal values natively).
- * So if we have a EUR positions and want to get the equivalent USD amount
- * we have to do: EUR_position * EUR_USD / 1e18 else the value would be way too high.
- * To move from USD to EUR: (USD_position * 1e18) / EUR_USD else the value would
+ * So if we have a BASE positions and want to get the equivalent USD amount
+ * we have to do: BASE_position * BASE_USD / 1e18 else the value would be way too high.
+ * To move from USD to BASE: (USD_position * 1e18) / BASE_USD else the value would
  * be way too low.
  *
  * In essence,
@@ -67,6 +67,10 @@ library LibMath {
     // min value
     function min(int256 x, int256 y) internal pure returns (int256) {
         return SignedMath.min(x, y);
+    }
+
+    function min(uint256 x, uint256 y) internal pure returns (uint256) {
+        return Math.min(x, y);
     }
 
     // int256: wad division / multiplication

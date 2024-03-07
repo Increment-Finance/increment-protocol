@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.15;
+pragma solidity ^0.8.16;
 
 import {IClearingHouse} from "./IClearingHouse.sol";
 
@@ -17,14 +17,14 @@ interface IInsurance {
     /// @notice Emitted when the sender is not the clearingHouse address
     error Insurance_SenderNotClearingHouse();
 
-    /// @notice Emitted when the balance of the vault is less than the amount to be settled
-    error Insurance_InsufficientBalance();
-
     /// @notice Emitted when locked insurance falls below insurance ratio
     error Insurance_InsufficientInsurance();
 
     /// @notice Emitted when the proposed clearingHouse address is equal to the zero address
     error Insurance_ClearingHouseZeroAddress();
+
+    /// @notice Emitted when the clearingHouse has already been set (one time call function)
+    error Insurance_ClearingHouseAlreadySet();
 
     /* ****************** */
     /*     Events         */

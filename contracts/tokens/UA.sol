@@ -1,43 +1,50 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 // contracts
 import {BaseERC20} from "./BaseERC20.sol";
 import {IncreAccessControl} from "../utils/IncreAccessControl.sol";
+import {Pausable} from "../../lib/openzeppelin-contracts/contracts/security/Pausable.sol";
 
 // interfaces
 import {IUA} from "../interfaces/IUA.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20Metadata} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 // libraries
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeERC20} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {LibMath} from "../lib/LibMath.sol";
 import {LibReserve} from "../lib/LibReserve.sol";
 
 /// @notice Unit of Account (UA) is a USDC-backed token used as the unit of account accross Increment
-contract UA is IUA, BaseERC20, IncreAccessControl {
+contract UA is IUA, BaseERC20, Pausable, IncreAccessControl {
     using SafeERC20 for IERC20Metadata;
     using LibMath for int256;
     using LibMath for uint256;
 
-    ReserveToken[] public reserveTokens;
+    // USDC
+    IERC20Metadata public override initialReserveToken;
 
-    constructor(IERC20Metadata initialReserveToken, uint256 initialTokenMaxMintCap)
+    ReserveToken[] internal reserveTokens;
+    /// @notice Map whitelisted reserve tokens to their reserveTokens indices
+    mapping(IERC20Metadata => uint256) internal tokenToReserveIdx;
+
+    constructor(IERC20Metadata _initialReserveToken, uint256 _initialTokenMaxMintCap)
         BaseERC20("Increment Unit of Account", "UA")
     {
-        addReserveToken(initialReserveToken, initialTokenMaxMintCap);
+        addReserveToken(_initialReserveToken, _initialTokenMaxMintCap);
+        initialReserveToken = _initialReserveToken;
     }
 
     /* ************************* */
     /*   Reserve operations      */
     /* ************************* */
 
-    /// @notice Mint UA with USDC, 1:1 backed
-    /// @param tokenIdx Index of token white listed reserve token to add to the protocol
+    /// @notice Mint UA with a whitelisted token
+    /// @param token Address of the reserve token to mint UA with
     /// @param amount Amount of reserve token. Might not be 18 decimals
-    function mintWithReserve(uint256 tokenIdx, uint256 amount) external override {
-        // Check that the reserve token is supported
-        if (tokenIdx > reserveTokens.length - 1) revert UA_InvalidReserveTokenIndex();
+    function mintWithReserve(IERC20Metadata token, uint256 amount) external override whenNotPaused {
+        uint256 tokenIdx = tokenToReserveIdx[token];
+        if ((tokenIdx == 0) && (address(token) != address(initialReserveToken))) revert UA_UnsupportedReserveToken();
         ReserveToken memory reserveToken = reserveTokens[tokenIdx];
 
         // Check that the cap of the reserve token isn't reached
@@ -50,24 +57,31 @@ contract UA is IUA, BaseERC20, IncreAccessControl {
         reserveToken.asset.safeTransferFrom(msg.sender, address(this), amount);
     }
 
-    /// @notice Burn UA in exchange of USDC
-    /// @param tokenIdx Index of token white listed reserve token to add to the protocol
+    /// @notice Burn UA in exchange of a whitelisted token
+    /// @param token Address of whitelisted reserve token to withdraw in
     /// @param amount UA amount. 18 decimals
-    function withdraw(uint256 tokenIdx, uint256 amount) external override {
-        // Check that the reserve token is supported
-        if (tokenIdx > reserveTokens.length - 1) revert UA_InvalidReserveTokenIndex();
-        IERC20Metadata reserveTokenAsset = reserveTokens[tokenIdx].asset;
+    function withdraw(IERC20Metadata token, uint256 amount) external override whenNotPaused {
+        uint256 tokenIdx = tokenToReserveIdx[token];
+        if ((tokenIdx == 0) && (address(token) != address(initialReserveToken))) revert UA_UnsupportedReserveToken();
 
         _burn(msg.sender, amount);
         reserveTokens[tokenIdx].currentReserves -= amount;
 
-        uint256 tokenAmount = LibReserve.wadToToken(reserveTokenAsset.decimals(), amount);
-        reserveTokenAsset.safeTransfer(msg.sender, tokenAmount);
+        uint256 tokenAmount = LibReserve.wadToToken(token.decimals(), amount);
+        token.safeTransfer(msg.sender, tokenAmount);
     }
 
     /* ****************** */
     /*     Governance     */
     /* ****************** */
+
+    function pause() external override onlyRole(EMERGENCY_ADMIN) {
+        _pause();
+    }
+
+    function unpause() external override onlyRole(EMERGENCY_ADMIN) {
+        _unpause();
+    }
 
     function addReserveToken(IERC20Metadata newReserveToken, uint256 tokenMintCap)
         public
@@ -81,16 +95,21 @@ contract UA is IUA, BaseERC20, IncreAccessControl {
         }
 
         reserveTokens.push(ReserveToken({asset: newReserveToken, currentReserves: 0, mintCap: tokenMintCap}));
+        tokenToReserveIdx[newReserveToken] = reserveTokens.length - 1;
 
         emit ReserveTokenAdded(newReserveToken, reserveTokens.length);
     }
 
-    function changeReserveTokenMaxMintCap(uint256 tokenIdx, uint256 newMintCap) external override onlyRole(GOVERNANCE) {
-        // Check that the reserve token is one of the white listed tokens
-        if (tokenIdx > reserveTokens.length - 1) revert UA_InvalidReserveTokenIndex();
+    function changeReserveTokenMaxMintCap(IERC20Metadata token, uint256 newMintCap)
+        external
+        override
+        onlyRole(GOVERNANCE)
+    {
+        uint256 tokenIdx = tokenToReserveIdx[token];
+        if ((tokenIdx == 0) && (address(token) != address(initialReserveToken))) revert UA_UnsupportedReserveToken();
 
         reserveTokens[tokenIdx].mintCap = newMintCap;
-        emit ReserveTokenMaxMintCapUpdated(reserveTokens[tokenIdx].asset, newMintCap);
+        emit ReserveTokenMaxMintCapUpdated(token, newMintCap);
     }
 
     /* *********** */
@@ -101,5 +120,13 @@ contract UA is IUA, BaseERC20, IncreAccessControl {
     /// @return Number of reserve tokens
     function getNumReserveTokens() external view override returns (uint256) {
         return reserveTokens.length;
+    }
+
+    /// @notice Get details of a reserve token
+    /// @param tokenIdx Index of the reserve token to get details from
+    function getReserveToken(uint256 tokenIdx) external view override returns (ReserveToken memory) {
+        if (tokenIdx > reserveTokens.length - 1) revert UA_UnsupportedReserveToken();
+
+        return reserveTokens[tokenIdx];
     }
 }

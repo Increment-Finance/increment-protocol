@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.15;
+pragma solidity ^0.8.16;
 
 // interfaces
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "../../lib/chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {IVirtualToken} from "../interfaces/IVirtualToken.sol";
 
 interface IVBase is IVirtualToken {
@@ -25,6 +25,9 @@ interface IVBase is IVirtualToken {
     /* ****************** */
     /*     Errors         */
     /* ****************** */
+
+    /// @notice Emitted when the proposed heart beat is less than 1 sec second
+    error VBase_IncorrectHeartBeat();
 
     /// @notice Emitted when the proposed aggregators decimals are less than PRECISION
     error VBase_InsufficientPrecision();
@@ -59,6 +62,8 @@ interface IVBase is IVirtualToken {
     function heartBeat() external view returns (uint256);
 
     function sequencerUptimeFeed() external view returns (AggregatorV3Interface);
+
+    function aggregator() external view returns (AggregatorV3Interface);
 
     function gracePeriod() external view returns (uint256);
 

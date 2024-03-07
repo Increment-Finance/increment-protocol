@@ -1,14 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.15;
+pragma solidity ^0.8.16;
 
 // source: https://etherscan.io/address/0x0959158b6040D32d04c301A72CBFD6b39E21c9AE#code
 // github: https://github.com/curvefi/curve-factory/blob/master/contracts/Factory.vy
 interface ICurveFactory {
-    function find_pool_for_coins(
-        address _from,
-        address _to,
-        uint256 i
-    ) external view returns (address);
+    function find_pool_for_coins(address _from, address _to, uint256 i) external view returns (address);
 
     function get_n_coins(address _pool) external view returns (uint256, uint256);
 
@@ -32,24 +28,9 @@ interface ICurveFactory {
 
     function get_admin_balances(address _pool) external view returns (uint256[2] memory);
 
-    function get_coin_indices(
-        address _pool,
-        address _from,
-        address _to
-    )
-        external
-        view
-        returns (
-            int128,
-            int128,
-            bool
-        );
+    function get_coin_indices(address _pool, address _from, address _to) external view returns (int128, int128, bool);
 
-    function add_base_pool(
-        address _base_pool,
-        address _metapool_implementation,
-        address _fee_receiver
-    ) external;
+    function add_base_pool(address _base_pool, address _metapool_implementation, address _fee_receiver) external;
 
     // not sure wether arrays should be memory or calldata!
 

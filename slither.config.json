@@ -1,4 +1,4 @@
 {
-  "detectors_to_exclude": "timestamp,reentrancy-no-eth,reentrancy-events,reentrancy-benign,calls-loop,solc-version",
-  "filter_paths": "node_modules|ICurveFactory|ICryptoSwap|ICurveToken|ICurveCryptoFactory|ICurveCryptoViews|IMath|test|mocks|curve"
+  "detectors_to_exclude": "timestamp,reentrancy-no-eth,reentrancy-events,reentrancy-benign,calls-loop,solc-version,immutable-states,naming-convention",
+  "filter_paths": "lib|ICurveFactory|ICryptoSwap|ICurveToken|ICurveCryptoFactory|ICurveCryptoViews|IMath|Multicall3|test|mocks|curve"
 }

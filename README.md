@@ -1,17 +1,12 @@
-[![Formatting and Linting](https://github.com/Increment-Finance/increment-protocol/actions/workflows/lint.yml/badge.svg)](https://github.com/Increment-Finance/increment-protocol/actions/workflows/lint.yml)
-[![Slither](https://github.com/Increment-Finance/increment-protocol/actions/workflows/slither.yml/badge.svg)](https://github.com/Increment-Finance/increment-protocol/actions/workflows/slither.yml)
-[![Unit tests](https://github.com/Increment-Finance/increment-protocol/actions/workflows/tests.yml/badge.svg)](https://github.com/Increment-Finance/increment-protocol/actions/workflows/tests.yml)
-[![codecov](https://codecov.io/gh/Increment-Finance/increment-protocol/branch/main/graph/badge.svg?token=VN8BL4MS3Y)](https://codecov.io/gh/Increment-Finance/increment-protocol)
-[![Fuzzing](https://github.com/Increment-Finance/increment-protocol/actions/workflows/foundry.yml/badge.svg)](https://github.com/Increment-Finance/increment-protocol/actions/workflows/foundry.yml)
+[![Formatting and Linting](https://github.com/Increment-Finance/increment-protocol/actions/workflows/lint.yml/badge.svg)](https://github.com/Increment-Finance/increment-protocol/actions/workflows/lint.yml) [![Slither](https://github.com/Increment-Finance/increment-protocol/actions/workflows/slither.yml/badge.svg)](https://github.com/Increment-Finance/increment-protocol/actions/workflows/slither.yml) [![Fuzzing](https://github.com/Increment-Finance/increment-protocol/actions/workflows/test.yml/badge.svg)](https://github.com/Increment-Finance/increment-protocol/actions/workflows/test.yml) [![Line Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/increment-bot/bc4d7f80aa422d6d020a11baf639db03/raw/increment-protocol-line-coverage__heads_main.json)](https://github.com/Increment-Finance/increment-protocol/actions/workflows/coverage.yml) [![Statement Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/increment-bot/bc4d7f80aa422d6d020a11baf639db03/raw/increment-protocol-statement-coverage__heads_main.json)](https://github.com/Increment-Finance/increment-protocol/actions/workflows/coverage.yml) [![Branch Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/increment-bot/bc4d7f80aa422d6d020a11baf639db03/raw/increment-protocol-branch-coverage__heads_main.json)](https://github.com/Increment-Finance/increment-protocol/actions/workflows/coverage.yml) [![Function Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/increment-bot/bc4d7f80aa422d6d020a11baf639db03/raw/increment-protocol-function-coverage__heads_main.json)](https://github.com/Increment-Finance/increment-protocol/actions/workflows/coverage.yml)
 
 # Increment Protocol
 
-This repository contains the smart contracts for Increment Protocol V1. The repository uses Hardhat as a development environment for compilation, testing and deployment tasks. Repo uses [template ethereum contracts](https://github.com/wighawag/template-ethereum-contracts) by
-wighawag.
+This repository contains the smart contracts for Increment Protocol V1\. The repository uses Foundry as a development environment for compilation, testing and deployment tasks.
 
 ## What is Increment?
 
-Increment utilizes pooled virtual assets and Curve V2’s AMM trading engine to enable on-chain perpetual swaps, allowing traders to long or short global exchange rates with leverage. As the "virtual" part implies, there are only virtual balances in the Curve V2 AMM. Liquidity providers deposit real funds and the system mints the corresponding amount of virtual assets in the AMM as liquidity trading. Liquidity providers receive trading fees in exchange for taking the opposite side of traders.
+Increment utilizes pooled virtual assets and Curve V2's AMM trading engine to enable on-chain perpetual swaps, allowing traders to long or short global exchange rates with leverage. As the "virtual" part implies, there are only virtual balances in the Curve V2 AMM. Liquidity providers deposit real funds and the system mints the corresponding amount of virtual assets in the AMM as liquidity trading. Liquidity providers receive trading fees in exchange for taking the opposite side of traders.
 
 ## Audit scope
 
@@ -21,7 +16,7 @@ Increment utilizes pooled virtual assets and Curve V2’s AMM trading engine to 
 - Insurance
 - Perpetual
 - Vault
-- CurveCryptoViewer
+- CurveCryptoViewer (only `get_dy_ex_fees`)
 - ~~ClearingHouseViewer~~
 
 ### tokens/
@@ -35,6 +30,12 @@ Increment utilizes pooled virtual assets and Curve V2’s AMM trading engine to 
 - LibPerpetual
 - LibReserve
 
+### utils /
+
+- IncreAccessControl
+
+- PerpOwnable
+
 ## External dependencies
 
 ### contracts/curve
@@ -47,9 +48,12 @@ click [here](https://increment-team.gitbook.io/developer-docs/).
 
 ## Setup
 
-Install node modules by running
+Install foundry
 
-`yarn install`
+```sh
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
 
 Prepare a .env file with the following variables
 
@@ -63,46 +67,29 @@ MNEMONIC="test test test test test test test test test test test test"
 
 We use alchemy to fork Ethereum Mainnet. You can get a free API key [here](https://www.alchemy.com/).
 
-Install additional dependencies via
-
-`yarn prepare`
-
 ## Compile objects
 
-Compile artifacts:
-
-`yarn hardhat compile`
-
-Create typechain objects:
-
-`yarn hardhat typechain`
-
-Compile zk-artifacts:
-
-`yarn hardhat compile --network zktestnet`
-
-Compile all:
-
-`yarn compile:all`
+```sh
+forge build
+```
 
 ## Test
 
 Run unit tests:
 
-`yarn test:unit`
+```sh
+forge test --fork-url $ETH_NODE_URI_MAINNET -vvv
+```
 
-Run integration tests (require API key):
+Run slither
 
-`yarn test:integration`
-
-Run fuzz tests (require API key):
-
-`yarn test:fuzzing`
-
-Run slither (see slither.sh)
-
-`yarn slither`
+```sh
+pip install -r requirements.txt
+forge build
+chmod +x ./slither.sh
+./slither.sh
+```
 
 Run coverage
 
-`yarn coverage`
+`forge coverage`
