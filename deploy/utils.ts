@@ -10,6 +10,13 @@ import "@matterlabs/hardhat-zksync-verify/dist/src/type-extensions";
 // Load env file
 dotenv.config();
 
+export const getEnvVariable = (varName: string) => {
+  if (!process.env[varName])
+    throw `⛔️ Variable ${varName} wasn't found in .env file!`;
+
+  return process.env[varName];
+};
+
 export const getProvider = () => {
   const rpcUrl = hre.network.config.url;
   if (!rpcUrl)
