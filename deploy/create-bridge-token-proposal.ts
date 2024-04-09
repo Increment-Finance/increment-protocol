@@ -202,9 +202,7 @@ export default async function () {
   console.log("Step 4: Create proposal");
   const proposalDescription = `Transfer ${formatEther(
     tokenAmount
-  )} INCR to zkSync Era and deposit in MerkleDistributor deployed at ${
-    constants.addresses.MERKLE_DISTRIBUTOR
-  } for Genesis Orb holder reward distribution (Merkle root: ${merkleRoot}, IPFS hash: ${ipfsHash})`;
+  )} INCR to MerkleDistributor on Era`;
 
   let proposalId = await governor.propose.staticCall(
     targets,
