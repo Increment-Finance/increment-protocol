@@ -72,14 +72,16 @@ export default async function () {
     l1BridgeInterface,
     l1Wallet
   );
-  const l2GasEstimate = await utils.estimateDefaultBridgeDepositL2Gas(
-    l1Wallet.provider,
-    wallet.provider,
-    constants.addresses.L1_TOKEN,
-    tokenAmount,
-    constants.addresses.OWNED_MULTICALL,
-    constants.addresses.L1_TIMELOCK
-  );
+  const l2GasEstimate = await utils
+    .estimateDefaultBridgeDepositL2Gas(
+      l1Wallet.provider,
+      wallet.provider,
+      constants.addresses.L1_TOKEN,
+      tokenAmount,
+      constants.addresses.OWNED_MULTICALL,
+      constants.addresses.L1_TIMELOCK
+    )
+    .then((gasEstimate) => gasEstimate * 3n); // Overestimate by 3x
   targets.push(constants.addresses.L1_BRIDGE);
   values.push(0);
   calldatas.push(
