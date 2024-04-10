@@ -49,11 +49,21 @@ export default async function () {
   );
   const governanceRole = await clearingHouseAccessControl.GOVERNANCE();
 
+  const IncrementTokenArtifact = await hre.artifacts.readArtifact("ERC20");
+  const incrementTokenInterface = new Interface(IncrementTokenArtifact.abi);
+  const incrementToken = new Contract(
+    constants.addresses.L1_TOKEN,
+    IncrementTokenArtifact.abi,
+    l1Wallet
+  );
+
   const targets: AddressLike[] = [];
   const values: BigNumberish[] = [];
   const calldatas: string[] = [];
 
-  const tokenAmount = parseEther("11200000");
+  const tokenAmount = await incrementToken.balanceOf(
+    constants.addresses.L1_TIMELOCK
+  );
   const nativeAmount = await l1Wallet.provider.getBalance(
     constants.addresses.L1_TIMELOCK
   );
