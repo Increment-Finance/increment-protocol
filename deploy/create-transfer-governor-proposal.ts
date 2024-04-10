@@ -99,8 +99,6 @@ export default async function () {
   console.log(
     "Step 1: Encode approve(L1ERC20Bridge, amount) to IncrementToken"
   );
-  const IncrementTokenArtifact = await hre.artifacts.readArtifact("ERC20");
-  const incrementTokenInterface = new Interface(IncrementTokenArtifact.abi);
   targets.push(constants.addresses.L1_TOKEN);
   values.push(0);
   calldatas.push(
@@ -142,18 +140,23 @@ export default async function () {
     utils.ZKSYNC_MAIN_ABI,
     l1Wallet
   );
-  const gasPrice = (await l1Wallet.provider.getFeeData()).gasPrice * 3n;
+  const gasPrice = (await l1Wallet.provider.getFeeData()).gasPrice * 2n;
   const gasLimitTransfer = await wallet.provider.estimateL1ToL2Execute({
     contractAddress: constants.addresses.L2_GOVERNOR,
     calldata: "",
     caller: utils.applyL1ToL2Alias(constants.addresses.L1_TIMELOCK),
     l2Value: nativeAmount,
   });
+  const baseCost = await zkSyncContract.l2TransactionBaseCost(
+    gasPrice,
+    gasLimitTransfer,
+    utils.REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT
+  );
   const l2TransferData = zkSyncContract.interface.encodeFunctionData(
     "requestL2Transaction",
     [
       constants.addresses.L2_GOVERNOR,
-      nativeAmount,
+      nativeAmount - BigInt(baseCost),
       "",
       gasLimitTransfer,
       utils.REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT,
