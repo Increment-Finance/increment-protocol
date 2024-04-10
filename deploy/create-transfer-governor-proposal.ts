@@ -57,6 +57,15 @@ export default async function () {
     l1Wallet
   );
 
+  const zkSyncAddress = await wallet.provider.getMainContractAddress();
+  const zkSyncContract = new Contract(
+    zkSyncAddress,
+    utils.ZKSYNC_MAIN_ABI,
+    l1Wallet
+  );
+
+  const gasPrice = (await l1Wallet.provider.getFeeData()).gasPrice * 2n;
+
   const targets: AddressLike[] = [];
   const values: BigNumberish[] = [];
   const calldatas: string[] = [];
@@ -64,7 +73,7 @@ export default async function () {
   const tokenAmount = await incrementToken.balanceOf(
     constants.addresses.L1_TIMELOCK
   );
-  const nativeAmount = await l1Wallet.provider.getBalance(
+  const nativeBalance = await l1Wallet.provider.getBalance(
     constants.addresses.L1_TIMELOCK
   );
   const governedAddresses = [
@@ -120,7 +129,7 @@ export default async function () {
 
   console.log("Step 2: Encode ERC20 deposit to L1Bridge");
   const l1BridgeInterface = utils.L1_BRIDGE_ABI;
-  let l2GasEstimate = await utils
+  const l2GasEstimate = await utils
     .estimateDefaultBridgeDepositL2Gas(
       l1Wallet.provider,
       wallet.provider,
@@ -129,9 +138,15 @@ export default async function () {
       constants.addresses.L2_GOVERNOR,
       constants.addresses.L1_TIMELOCK
     )
-    .then((gasEstimate) => gasEstimate * 3n); // Overestimate by 3x
+    .then((gasEstimate) => gasEstimate * 2n); // Overestimate by 2x
+
+  const baseCostBridge = await zkSyncContract.l2TransactionBaseCost(
+    gasPrice,
+    l2GasEstimate,
+    utils.REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT
+  );
   targets.push(constants.addresses.L1_BRIDGE);
-  values.push(0);
+  values.push(baseCostBridge);
   calldatas.push(
     l1BridgeInterface.encodeFunctionData("deposit", [
       constants.addresses.L2_GOVERNOR,
@@ -143,41 +158,6 @@ export default async function () {
     ])
   );
 
-  console.log("Step 3: Encode native ETH transfer to L2");
-  const zkSyncAddress = await wallet.provider.getMainContractAddress();
-  const zkSyncContract = new Contract(
-    zkSyncAddress,
-    utils.ZKSYNC_MAIN_ABI,
-    l1Wallet
-  );
-  const gasPrice = (await l1Wallet.provider.getFeeData()).gasPrice * 2n;
-  const gasLimitTransfer = await wallet.provider.estimateL1ToL2Execute({
-    contractAddress: constants.addresses.L2_GOVERNOR,
-    calldata: "",
-    caller: utils.applyL1ToL2Alias(constants.addresses.L1_TIMELOCK),
-    l2Value: nativeAmount,
-  });
-  const baseCost = await zkSyncContract.l2TransactionBaseCost(
-    gasPrice,
-    gasLimitTransfer,
-    utils.REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT
-  );
-  const l2TransferData = zkSyncContract.interface.encodeFunctionData(
-    "requestL2Transaction",
-    [
-      constants.addresses.L2_GOVERNOR,
-      nativeAmount - BigInt(baseCost),
-      "",
-      gasLimitTransfer,
-      utils.REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT,
-      [],
-      constants.addresses.L2_GOVERNOR,
-    ]
-  );
-  targets.push(zkSyncAddress);
-  values.push(nativeAmount);
-  calldatas.push(l2TransferData);
-
   /**
    * LAYER 2
    */
@@ -186,11 +166,11 @@ export default async function () {
   const multicallDatas = [];
 
   console.log(
-    "Step 4: Encode Multicall to grant and renounce GOVERNANCE roles"
+    "Step 3: Encode Multicall to grant and renounce GOVERNANCE roles"
   );
   console.log(`  GOVERNANCE = keccak256("GOVERNANCE") = ${governanceRole}`);
 
-  console.log("  Step 4a: Grant governance roles to new governor");
+  console.log("  Step 3a: Grant governance roles to new governor");
   governedAddresses.forEach(({ name, address }, i) => {
     console.log(
       `      [${i}]: encoding ${name}.grantRole(GOVERNANCE, ${constants.addresses.L2_GOVERNOR})`
@@ -204,7 +184,7 @@ export default async function () {
     );
   });
 
-  console.log("  Step 4b: Renounce governance roles from OwnedMulticall");
+  console.log("  Step 3b: Renounce governance roles from OwnedMulticall");
   governedAddresses.forEach(({ name, address }, i) => {
     console.log(
       `      [${i}]: encoding ${name}.renounceRole(GOVERNANCE, ${constants.addresses.OWNED_MULTICALL})`
@@ -218,7 +198,7 @@ export default async function () {
     );
   });
 
-  console.log("  Step 4c: Encode aggregate3(Call[] calls) to OwnedMulticall");
+  console.log("  Step 3c: Encode aggregate3(Call[] calls) to OwnedMulticall");
   const multicallArtifact = await hre.artifacts.readArtifact("OwnedMulticall3");
   const multicallInterface = new Interface(multicallArtifact.abi);
   const multicallData = multicallInterface.encodeFunctionData("aggregate3", [
@@ -230,7 +210,7 @@ export default async function () {
   ]);
 
   console.log(
-    "  Step 4d: Estimate gas cost for multicall transaction (overestimate by 3x)"
+    "  Step 3d: Estimate gas cost for multicall transaction (overestimate by 2x)"
   );
   const gasLimitMulticall = await wallet.provider.estimateL1ToL2Execute({
     contractAddress: constants.addresses.OWNED_MULTICALL,
@@ -248,7 +228,7 @@ export default async function () {
    */
 
   console.log(
-    "  Step 4e: Encode Cross chain multicall transaction to OwnedMulticall"
+    "  Step 3e: Encode Cross chain multicall transaction to OwnedMulticall"
   );
   const l2MulticallData = zkSyncContract.interface.encodeFunctionData(
     "requestL2Transaction",
@@ -270,9 +250,9 @@ export default async function () {
    * LAYER 2
    */
 
-  console.log("Step 5: Renounce ownership of OwnedMulticall");
+  console.log("Step 4: Renounce ownership of OwnedMulticall");
 
-  console.log("  Step 5a: Encode renounceOwnership to OwnedMulticall");
+  console.log("  Step 4a: Encode renounceOwnership to OwnedMulticall");
 
   const renounceData = multicallInterface.encodeFunctionData(
     "renounceOwnership",
@@ -280,7 +260,7 @@ export default async function () {
   );
 
   console.log(
-    "  Step 5b: Estimate gas cost for renounce transaction (overestimate by 3x)"
+    "  Step 4b: Estimate gas cost for renounce transaction (overestimate by 2x)"
   );
 
   const gasLimitRenounce = await wallet.provider.estimateL1ToL2Execute({
@@ -299,7 +279,7 @@ export default async function () {
    */
 
   console.log(
-    "  Step 5c: Encode Cross chain renounce transaction to OwnedMulticall"
+    "  Step 4c: Encode Cross chain renounce transaction to OwnedMulticall"
   );
   const l2RenounceData = zkSyncContract.interface.encodeFunctionData(
     "requestL2Transaction",
@@ -316,6 +296,42 @@ export default async function () {
   targets.push(zkSyncAddress);
   values.push(baseCostRenounce);
   calldatas.push(l2RenounceData);
+
+  console.log("Step 5: Encode native ETH transfer to L2");
+  const gasLimitTransfer = await wallet.provider.estimateL1ToL2Execute({
+    contractAddress: constants.addresses.L2_GOVERNOR,
+    calldata: "",
+    caller: utils.applyL1ToL2Alias(constants.addresses.L1_TIMELOCK),
+    l2Value: nativeBalance,
+  });
+  const baseCostTransfer = await zkSyncContract.l2TransactionBaseCost(
+    gasPrice,
+    gasLimitTransfer,
+    utils.REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT
+  );
+  // Since previous proposal actions require sending ETH to L2 for gas,
+  // we need to calculate the remaining balance for the final transfer
+  const l2Value = //               msg.value on L2 =
+    nativeBalance - //             Starting ETH balance on L1
+    BigInt(baseCostBridge) - //    - L2 cost from Step 2 (bridge INCR)
+    BigInt(baseCostMulticall) - // - L2 cost from Step 3 (multicall)
+    BigInt(baseCostRenounce) - //  - L2 cost from Step 4 (renounce ownership)
+    BigInt(baseCostTransfer); //   - L2 cost from Step 5 (bridge ETH)
+  const l2TransferData = zkSyncContract.interface.encodeFunctionData(
+    "requestL2Transaction",
+    [
+      constants.addresses.L2_GOVERNOR,
+      l2Value,
+      "0x",
+      gasLimitTransfer,
+      utils.REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT,
+      [],
+      constants.addresses.L2_GOVERNOR,
+    ]
+  );
+  targets.push(zkSyncAddress);
+  values.push(l2Value + BigInt(baseCostTransfer)); // msg.value on L2 + base cost
+  calldatas.push(l2TransferData);
 
   console.log("Step 6: Create proposal");
   const proposalDescription = "Transfer roles, assets to new governor on Era";
