@@ -39,6 +39,14 @@ export default async function () {
     l1Wallet
   );
 
+  const zkSyncAddress = await wallet.provider.getMainContractAddress();
+  const zkSyncContract = new Contract(
+    zkSyncAddress,
+    utils.ZKSYNC_MAIN_ABI,
+    l1Wallet
+  );
+  const gasPrice = (await l1Wallet.provider.getFeeData()).gasPrice * 3n;
+
   const targets: AddressLike[] = [];
   const values: BigNumberish[] = [];
   const calldatas: string[] = [];
@@ -82,8 +90,13 @@ export default async function () {
       constants.addresses.L1_TIMELOCK
     )
     .then((gasEstimate) => gasEstimate * 3n); // Overestimate by 3x
+  const baseCostBridge = await zkSyncContract.l2TransactionBaseCost(
+    gasPrice,
+    l2GasEstimate,
+    utils.REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT
+  );
   targets.push(constants.addresses.L1_BRIDGE);
-  values.push(0);
+  values.push(baseCostBridge);
   calldatas.push(
     l1BridgeInterface.encodeFunctionData("deposit", [
       constants.addresses.OWNED_MULTICALL,
@@ -164,13 +177,6 @@ export default async function () {
   console.log(
     "  Step 3d: Estimate gas cost for multicall transaction (overestimate by 3x)"
   );
-  const zkSyncAddress = await wallet.provider.getMainContractAddress();
-  const zkSyncContract = new Contract(
-    zkSyncAddress,
-    utils.ZKSYNC_MAIN_ABI,
-    l1Wallet
-  );
-  const gasPrice = (await l1Wallet.provider.getFeeData()).gasPrice * 3n;
   const gasLimit = await wallet.provider.estimateL1ToL2Execute({
     contractAddress: constants.addresses.OWNED_MULTICALL,
     calldata: multicallData,
