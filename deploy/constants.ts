@@ -7,6 +7,8 @@ export default {
     CURVE_MATH: "0xAb880013531B87FFfCB5e9d95677913720ca1c3A",
     L1_GOVERNOR: "0x134E7ABaF7E8c440f634aE9f5532A4df53c19385",
     L1_TIMELOCK: "0xcce2065c1DC423451530BF7B493243234Ba1E849",
+    L1_TOKEN: "0x1B9eBb707D87fbec93C49D9f2d994Ebb60461B9b",
+    L1_BRIDGE: "0x57891966931eb4bb6fb81430e6ce0a03aabde063",
     EMERGENCY_ADMIN: "0x4f05E10B7e60D5b18c38a723d9469b4962C288D9",
     CLEARING_HOUSE: "0x9200536A28b0Bf5d02b7d8966cd441EDc173dE61",
     CURVE_CRYPTO_VIEWS: "0x7b80A367Fd0179CF920391dFfaD376a72724d516",
@@ -14,10 +16,11 @@ export default {
     SEQUENCER_UPTIME_FEED: "0x1589148e57C0034A8Bf230E601fde6e23171854d",
     PERP_MARKET_FACTORY: "0xCbba059D8E8AcC2C69bA94400686106b2396d786",
     ZKSYNC_DIAMOND_PROXY: "0x32400084c286cf3e17e7b677ea9583e60a000324",
+    MERKLE_DISTRIBUTOR: "0x00000000000000000000000000000000deadbeef",
     ORACLES: {
       ETH: "0x6D41d1dc818112880b40e26BD6FD347E41008eDA",
-      USDC: "0x1824D297C6d6D311A204495277B63e943C2D376E"
-    }
+      USDC: "0x1824D297C6d6D311A204495277B63e943C2D376E",
+    },
   },
   global: {
     minMargin: parseEther("0.03"),
@@ -31,7 +34,7 @@ export default {
     uaDebtSeizureThreshold: parseEther("10000"),
     gracePeriod: "300",
     uaHeartBeat: "86400",
-    initialTokenMaxMintCap: parseEther("10000000")
+    initialTokenMaxMintCap: parseEther("10000000"),
   },
   marketParams: {
     ETH: {
@@ -54,7 +57,7 @@ export default {
       fee_gamma: "230000000000000",
       adjustment_step: "146000000000000",
       admin_fee: "0",
-      ma_half_time: "600"
-    }
-  }
+      ma_half_time: "600",
+    },
+  },
 };
