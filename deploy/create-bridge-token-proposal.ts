@@ -91,7 +91,7 @@ export default async function () {
       tokenAmount,
       l2GasEstimate,
       utils.REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT,
-      constants.addresses.OWNED_MULTICALL,
+      constants.addresses.EMERGENCY_ADMIN,
     ])
   );
 
@@ -192,7 +192,7 @@ export default async function () {
       gasLimit,
       utils.REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT,
       [],
-      constants.addresses.OWNED_MULTICALL,
+      constants.addresses.EMERGENCY_ADMIN,
     ]
   );
   targets.push(zkSyncAddress);
