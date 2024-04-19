@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity 0.8.16;
+pragma solidity ^0.8.16;
 
 import "../helpers/Deployment.MainnetFork.sol";
 import {Merkle} from "../../lib/murky/src/Merkle.sol";
