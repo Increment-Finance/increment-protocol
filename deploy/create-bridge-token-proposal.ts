@@ -59,11 +59,25 @@ export default async function () {
    * LAYER 1
    */
 
+  console.log("Step 0: Encode unpause() to IncrementToken");
+  const IncrementTokenArtifact = await hre.artifacts.readArtifact("ERC20");
+  const incrementTokenInterface = new Interface([
+    ...IncrementTokenArtifact.abi,
+    {
+      type: "function",
+      name: "unpause",
+      inputs: [],
+      outputs: [],
+      stateMutability: "nonpayable",
+    },
+  ]);
+  targets.push(constants.addresses.L1_TOKEN);
+  values.push(0);
+  calldatas.push(incrementTokenInterface.encodeFunctionData("unpause", []));
+
   console.log(
     "Step 1: Encode approve(L1ERC20Bridge, amount) to IncrementToken"
   );
-  const IncrementTokenArtifact = await hre.artifacts.readArtifact("ERC20");
-  const incrementTokenInterface = new Interface(IncrementTokenArtifact.abi);
   targets.push(constants.addresses.L1_TOKEN);
   values.push(0);
   calldatas.push(
