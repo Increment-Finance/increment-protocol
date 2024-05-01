@@ -277,9 +277,9 @@ export default async function () {
   for (let i = 0; i < 5; i++) {
     try {
       const queueTx = await governor.queue(
-        [zkSyncAddress],
-        [baseCost],
-        [l2TransactionData],
+        targets,
+        values,
+        calldatas,
         descriptionHash
       );
       await queueTx.wait();
@@ -293,11 +293,6 @@ export default async function () {
   }
 
   console.log("Step 6: Execute proposal");
-  await governor.execute(
-    [zkSyncAddress],
-    [baseCost],
-    [l2TransactionData],
-    descriptionHash
-  );
+  await governor.execute(targets, values, calldatas, descriptionHash);
   console.log("Proposal executed");
 }
