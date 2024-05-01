@@ -138,7 +138,7 @@ export default async function () {
       constants.addresses.L2_GOVERNOR,
       constants.addresses.L1_TIMELOCK
     )
-    .then((gasEstimate) => gasEstimate * 2n); // Overestimate by 2x
+    .then((gasEstimate) => BigInt(gasEstimate) * BigInt(2)); // Overestimate by 2x
 
   const baseCostBridge = await zkSyncContract.l2TransactionBaseCost(
     gasPrice,

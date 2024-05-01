@@ -103,7 +103,7 @@ export default async function () {
       constants.addresses.OWNED_MULTICALL,
       constants.addresses.L1_TIMELOCK
     )
-    .then((gasEstimate) => gasEstimate * 3n); // Overestimate by 3x
+    .then((gasEstimate) => BigInt(gasEstimate) * BigInt(3)); // Overestimate by 3x
   const baseCostBridge = await zkSyncContract.l2TransactionBaseCost(
     gasPrice,
     l2GasEstimate,
@@ -134,7 +134,7 @@ export default async function () {
   console.log(
     "  Step 3a: approve(MerkleDistributor, amount) to bridged IncrementToken"
   );
-  const bridgedTokenAddress = l1Bridge.l2TokenAddress(
+  const bridgedTokenAddress = await l1Bridge.l2TokenAddress(
     constants.addresses.L1_TOKEN
   );
   multicallTargets.push(bridgedTokenAddress);
