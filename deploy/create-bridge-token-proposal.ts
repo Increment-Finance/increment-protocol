@@ -220,7 +220,7 @@ export default async function () {
   calldatas.push(l2TransactionData);
 
   console.log("Step 4: Create proposal");
-  const proposalDescription = `Transfer ${formatEther(
+  const proposalDescription = `Unpause and transfer ${formatEther(
     tokenAmount
   )} INCR to MerkleDistributor on Era`;
 
