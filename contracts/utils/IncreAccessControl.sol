@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 // contracts
-import {AccessControl} from "../../lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 // interfaces
 import {IIncreAccessControl} from "../interfaces/IIncreAccessControl.sol";

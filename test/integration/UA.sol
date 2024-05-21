@@ -2,17 +2,17 @@
 pragma solidity ^0.8.16;
 
 // contracts
-import {ERC20Permit} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
+import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import {Deployment} from "../helpers/Deployment.MainnetFork.sol";
 import {SigUtils} from "../helpers/SigUtils.sol";
 
 // interfaces
-import {IERC20Metadata} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IUA} from "../../contracts/interfaces/IUA.sol";
 
 // libraries
 import {LibPerpetual} from "../../contracts/lib/LibPerpetual.sol";
-import "../../lib/openzeppelin-contracts/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "../../contracts/lib/LibMath.sol";
 import {LibReserve} from "../../contracts/lib/LibReserve.sol";
 

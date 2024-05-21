@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 // interfaces
 import {IClearingHouse} from "./IClearingHouse.sol";
 import {IPerpetual} from "./IPerpetual.sol";
-import {IERC20Metadata} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IVault} from "./IVault.sol";
 import {IInsurance} from "./IInsurance.sol";
 import {ICryptoSwap} from "./ICryptoSwap.sol";

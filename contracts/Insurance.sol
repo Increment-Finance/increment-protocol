@@ -2,12 +2,12 @@
 pragma solidity ^0.8.16;
 
 // contracts
-import {SafeERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ReentrancyGuard} from "../lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {IncreAccessControl} from "./utils/IncreAccessControl.sol";
 
 // interfaces
-import {IERC20Metadata} from "../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IVault} from "./interfaces/IVault.sol";
 import {IInsurance} from "./interfaces/IInsurance.sol";
 import {IClearingHouse} from "./interfaces/IClearingHouse.sol";

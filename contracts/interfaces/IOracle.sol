@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 // interfaces
-import {AggregatorV3Interface} from "../../lib/chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 /// @notice Oracle interface created to ease oracle contract switch
 interface IOracle {

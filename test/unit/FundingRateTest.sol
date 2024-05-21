@@ -12,8 +12,8 @@ import "../../contracts/interfaces/IVBase.sol";
 import "../../contracts/interfaces/IVQuote.sol";
 import "../../contracts/interfaces/IInsurance.sol";
 import "../../contracts/interfaces/IPerpetual.sol";
-import "../../lib/chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import "../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 // libraries
 import "../../contracts/lib/LibMath.sol";

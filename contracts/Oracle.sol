@@ -9,10 +9,10 @@ import {LibReserve} from "./lib/LibReserve.sol";
 import {LibMath} from "./lib/LibMath.sol";
 
 // interfaces
-import {IERC20Metadata} from "../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
-import {AggregatorV3Interface} from "../lib/chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import {IERC4626} from "../lib/openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 /// @notice Oracle contract relying on Chainlink for price
 contract Oracle is IOracle, IncreAccessControl {

@@ -6,7 +6,7 @@ import {Deployment} from "../helpers/Deployment.MainnetFork.sol";
 import {TestRewardContract} from "../mocks/TestRewardContract.sol";
 import {USDCMock} from "../mocks/USDCMock.sol";
 import {TestERC4626} from "../mocks/TestERC4626.sol";
-import {AggregatorV3Interface} from "../../lib/chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 // interfaces
 import "../../contracts/interfaces/IClearingHouse.sol";
@@ -17,7 +17,7 @@ import "../../contracts/lib/LibMath.sol";
 import "../../contracts/lib/LibReserve.sol";
 import "../../contracts/lib/LibPerpetual.sol";
 import "../../lib/forge-std/src/StdError.sol";
-import "../../lib/openzeppelin-contracts/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract Reserve is Deployment {
     // events

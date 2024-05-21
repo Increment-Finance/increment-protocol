@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {Multicall3} from "./utils/Multicall3.sol";
-import {Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract OwnedMulticall3 is Ownable, Multicall3 {
     function aggregate(Call[] calldata calls)

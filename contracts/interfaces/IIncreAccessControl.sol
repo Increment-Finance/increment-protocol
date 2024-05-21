@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.16;
 
-import {IAccessControl} from "../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
+import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 
 interface IIncreAccessControl is IAccessControl {
     /* ****************** */

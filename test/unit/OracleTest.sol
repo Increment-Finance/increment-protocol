@@ -3,15 +3,15 @@ pragma solidity ^0.8.16;
 
 // contracts
 import {Test} from "../../lib/forge-std/src/Test.sol";
-import "../../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // interfaces
 import "../../contracts/Oracle.sol";
-import "../../lib/chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import "../../lib/chainlink/contracts/src/v0.8/tests/MockV3Aggregator.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@chainlink/contracts/src/v0.8/tests/MockV3Aggregator.sol";
 
 // libraries
-import "../../lib/openzeppelin-contracts/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "../../contracts/lib/LibMath.sol";
 
 contract OracleTest is Test {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.16;
 
-import "../../lib/chainlink/contracts/src/v0.8/interfaces/AggregatorV2V3Interface.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV2V3Interface.sol";
 
 contract ChainlinkAggregatorMock is AggregatorV2V3Interface {
     uint256 public constant override version = 0;

@@ -7,7 +7,7 @@ import {IncreAccessControl} from "../utils/IncreAccessControl.sol";
 
 // interfaces
 import {IVBase} from "../interfaces/IVBase.sol";
-import {AggregatorV3Interface} from "../../lib/chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 /// @notice ERC20 token traded on the CryptoSwap pool
 contract VBase is IVBase, IncreAccessControl, VirtualToken {

@@ -2,11 +2,11 @@
 pragma solidity ^0.8.16;
 
 // libraries
-import {PRBMathUD60x18} from "../../lib/prb-math/contracts/PRBMathUD60x18.sol";
-import {PRBMathSD59x18} from "../../lib/prb-math/contracts/PRBMathSD59x18.sol";
-import {SafeCast} from "../../lib/openzeppelin-contracts/contracts/utils/math/SafeCast.sol";
-import {Math} from "../../lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
-import {SignedMath} from "../../lib/openzeppelin-contracts/contracts/utils/math/SignedMath.sol";
+import {PRBMathUD60x18} from "prb-math/contracts/PRBMathUD60x18.sol";
+import {PRBMathSD59x18} from "prb-math/contracts/PRBMathSD59x18.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SignedMath} from "@openzeppelin/contracts/utils/math/SignedMath.sol";
 
 /*
  * To be used if `b` decimals make `b` larger than what it would be otherwise.

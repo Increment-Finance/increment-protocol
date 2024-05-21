@@ -10,7 +10,7 @@ import {IVBase} from "../../contracts/interfaces/IVBase.sol";
 import {IVQuote} from "../../contracts/interfaces/IVQuote.sol";
 import {IClearingHouse} from "../../contracts/interfaces/IClearingHouse.sol";
 import {ICurveCryptoViews} from "../../contracts/interfaces/ICurveCryptoViews.sol";
-import {IERC20Metadata} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 // libraries
 import {LibPerpetual} from "../../contracts/lib/LibPerpetual.sol";

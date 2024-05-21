@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 // contracts
-import {Pausable} from "../lib/openzeppelin-contracts/contracts/security/Pausable.sol";
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {IncreAccessControl} from "./utils/IncreAccessControl.sol";
 
 // interfaces
@@ -13,12 +13,12 @@ import {IVQuote} from "./interfaces/IVQuote.sol";
 import {ICryptoSwap} from "./interfaces/ICryptoSwap.sol";
 import {IClearingHouse} from "./interfaces/IClearingHouse.sol";
 import {ICurveCryptoViews} from "./interfaces/ICurveCryptoViews.sol";
-import {IERC20Metadata} from "../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 // libraries
 import {LibMath} from "./lib/LibMath.sol";
 import {LibPerpetual} from "./lib/LibPerpetual.sol";
-import "../lib/openzeppelin-contracts/contracts/utils/cryptography/MerkleProof.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /// @notice Used for settling users' profit and loss for one or more Perpetual contracts that have been delisted
 /// @dev This contract gets treated as a Perpetual contract by the Clearing House after being allowlisted, so it

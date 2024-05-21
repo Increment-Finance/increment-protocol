@@ -8,9 +8,9 @@ import {Test} from "../../lib/forge-std/src/Test.sol";
 import {PRBMathUD60x18} from "../../lib/prb-math/contracts/PRBMathUD60x18.sol";
 import {PRBMathSD59x18} from "../../lib/prb-math/contracts/PRBMathSD59x18.sol";
 import "../../lib/prb-math/contracts/PRBMath.sol";
-import {SafeCast} from "../../lib/openzeppelin-contracts/contracts/utils/math/SafeCast.sol";
-import {Math} from "../../lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
-import {SignedMath} from "../../lib/openzeppelin-contracts/contracts/utils/math/SignedMath.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SignedMath} from "@openzeppelin/contracts/utils/math/SignedMath.sol";
 import {LibMath} from "../../contracts/lib/LibMath.sol";
 
 contract LibMathExternalHarness {

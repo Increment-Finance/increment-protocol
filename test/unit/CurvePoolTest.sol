@@ -9,7 +9,7 @@ import {Deployment} from "../helpers/Deployment.MainnetFork.sol";
 import {VBase} from "../../contracts/tokens/VBase.sol";
 import {VQuote} from "../../contracts/tokens/VQuote.sol";
 import {CurveCryptoViews} from "../../contracts/CurveCryptoViews.sol";
-import "../../lib/chainlink/contracts/src/v0.8/tests/MockV3Aggregator.sol";
+import "@chainlink/contracts/src/v0.8/tests/MockV3Aggregator.sol";
 
 // libraries
 import "../../contracts/lib/LibMath.sol";

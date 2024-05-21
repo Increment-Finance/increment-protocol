@@ -6,7 +6,7 @@ import {DEPLOYER_SYSTEM_CONTRACT} from "../lib/era-contracts/system-contracts/co
 import {PerpOwnable} from "../contracts/utils/PerpOwnable.sol";
 
 // interfaces
-import {AggregatorV3Interface} from "../lib/chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {IContractDeployer} from "../lib/era-contracts/system-contracts/contracts/interfaces/IContractDeployer.sol";
 import {ICryptoSwap} from "../contracts/interfaces/ICryptoSwap.sol";
 import {ICurveCryptoViews} from "../contracts/interfaces/ICurveCryptoViews.sol";

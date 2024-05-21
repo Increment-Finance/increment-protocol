@@ -13,11 +13,11 @@ import {IVault} from "../../contracts/interfaces/IVault.sol";
 import {IOracle} from "../../contracts/interfaces/IOracle.sol";
 import {IInsurance} from "../../contracts/interfaces/IInsurance.sol";
 import {IVBase} from "../../contracts/interfaces/IVBase.sol";
-import {AggregatorV3Interface} from "../../lib/chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 // libraries
 import {LibPerpetual} from "../../contracts/lib/LibPerpetual.sol";
-import "../../lib/openzeppelin-contracts/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "../../contracts/lib/LibMath.sol";
 
 contract Governance is Deployment {

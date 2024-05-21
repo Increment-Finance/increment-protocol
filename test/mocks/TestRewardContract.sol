@@ -8,7 +8,7 @@ import {IncreAccessControl} from "../../contracts/utils/IncreAccessControl.sol";
 import {IClearingHouse} from "../../contracts/interfaces/IClearingHouse.sol";
 import {IPerpetual} from "../../contracts/interfaces/IPerpetual.sol";
 import {IRewardContract} from "../../contracts/interfaces/IRewardContract.sol";
-import {IERC20Metadata} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 // libraries
 import {LibPerpetual} from "../../contracts/lib/LibPerpetual.sol";

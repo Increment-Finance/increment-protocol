@@ -2,9 +2,9 @@
 pragma solidity ^0.8.16;
 
 // contracts
-import {ERC20} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import {Ownable} from "../../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract USDCMock is ERC20, Ownable {
     uint8 public _decimals;
