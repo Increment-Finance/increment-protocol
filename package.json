@@ -28,9 +28,10 @@
     "@matterlabs/hardhat-zksync-deploy": "^1.1.2",
     "@matterlabs/hardhat-zksync-node": "^1.0.1",
     "@matterlabs/hardhat-zksync-solc": "^1.0.6",
-    "@matterlabs/hardhat-zksync-verify": "^1.2.2",
+    "@matterlabs/hardhat-zksync-verify": "^1.4.2",
     "@matterlabs/hardhat-zksync-vyper": "^1.0.5",
     "@matterlabs/zksync-contracts": "^0.6.1",
+    "@nomicfoundation/hardhat-verify": "^2.0.6",
     "@nomiclabs/hardhat-etherscan": "^3.1.8",
     "@nomiclabs/hardhat-vyper": "^3.0.5",
     "@types/chai": "^4.3.11",
@@ -42,6 +43,6 @@
     "mocha": "^10.2.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
-    "zksync-ethers": "^6.0.0"
+    "zksync-ethers": "^6.7.0"
   }
 }

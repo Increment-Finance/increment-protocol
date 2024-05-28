@@ -53,7 +53,7 @@ export default async function () {
 
   const merkleRoot = getEnvVariable("MERKLE_ROOT");
   const ipfsHash = getEnvVariable("IPFS_HASH");
-  const tokenAmount = parseEther("400000");
+  const tokenAmount = parseEther("500000");
 
   /**
    * LAYER 1
