@@ -139,10 +139,14 @@ contract PerpMarketFactory {
         // grant roles
         IIncreAccessControl(perpAddress).grantRole(GOVERNANCE, GOV_ADDRESS);
         IIncreAccessControl(perpAddress).grantRole(EMERGENCY_ADMIN, EMERGENCY_ADMIN_ADDRESS);
+        IIncreAccessControl(vBaseAddress).grantRole(GOVERNANCE, GOV_ADDRESS);
+        IIncreAccessControl(vBaseAddress).grantRole(EMERGENCY_ADMIN, EMERGENCY_ADMIN_ADDRESS);
 
         // renounce roles for this contract
         IIncreAccessControl(perpAddress).renounceRole(GOVERNANCE, address(this));
         IIncreAccessControl(perpAddress).renounceRole(EMERGENCY_ADMIN, address(this));
+        IIncreAccessControl(vBaseAddress).renounceRole(GOVERNANCE, address(this));
+        IIncreAccessControl(vBaseAddress).renounceRole(EMERGENCY_ADMIN, address(this));
 
         // allowlist the new market in the clearing house
         CLEARING_HOUSE.allowListPerpetual(perp);
