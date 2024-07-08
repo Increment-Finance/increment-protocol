@@ -3,7 +3,7 @@ import {
   Interface,
   AddressLike,
   BigNumberish,
-  parseEther,
+  formatEther,
 } from "ethers";
 import { utils } from "zksync-ethers";
 import * as hre from "hardhat";
@@ -101,14 +101,14 @@ export default async function () {
       name: "ETHUSD Perpetual",
       address: constants.addresses.PERPETUALS.ETHUSD.PERPETUAL,
     },
-    {
-      name: "ETHUSD VBase",
-      address: constants.addresses.PERPETUALS.ETHUSD.VBASE,
-    },
-    {
-      name: "ETHUSD VQuote",
-      address: constants.addresses.PERPETUALS.ETHUSD.VQUOTE,
-    },
+    // {
+    //   name: "ETHUSD VBase",
+    //   address: constants.addresses.PERPETUALS.ETHUSD.VBASE,
+    // },
+    // {
+    //   name: "ETHUSD VQuote",
+    //   address: constants.addresses.PERPETUALS.ETHUSD.VQUOTE,
+    // },
   ];
 
   /**
@@ -119,12 +119,18 @@ export default async function () {
     "Step 1: Encode approve(L1ERC20Bridge, amount) to IncrementToken"
   );
   targets.push(constants.addresses.L1_TOKEN);
+  console.log("- targets[0]:", targets[0]);
   values.push(0);
+  console.log("- values[0]:", values[0]);
   calldatas.push(
     incrementTokenInterface.encodeFunctionData("approve", [
       constants.addresses.L1_BRIDGE,
       tokenAmount,
     ])
+  );
+  console.log("- calldatas[0]:", calldatas[0]);
+  console.log(
+    `  IncrementToken(${constants.addresses.L1_TOKEN}).approve(${constants.addresses.L1_BRIDGE}, ${tokenAmount})`
   );
 
   console.log("Step 2: Encode ERC20 deposit to L1Bridge");
@@ -146,7 +152,10 @@ export default async function () {
     utils.REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT
   );
   targets.push(constants.addresses.L1_BRIDGE);
+  console.log("- targets[1]:", targets[1]);
   values.push(baseCostBridge);
+  console.log("- values[1]:", values[1]);
+  console.log("  ETH value:", formatEther(values[1]));
   calldatas.push(
     l1BridgeInterface.encodeFunctionData("deposit", [
       constants.addresses.L2_GOVERNOR,
@@ -157,6 +166,15 @@ export default async function () {
       constants.addresses.L2_GOVERNOR,
     ])
   );
+  console.log("- calldatas[1]:", calldatas[1]);
+  console.log(`  L1Bridge(${constants.addresses.L1_BRIDGE}).deposit(
+    ${constants.addresses.L2_GOVERNOR},
+    ${constants.addresses.L1_TOKEN},
+    ${tokenAmount},
+    ${l2GasEstimate},
+    ${utils.REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT},
+    ${constants.addresses.L2_GOVERNOR}
+    )`);
 
   /**
    * LAYER 2
@@ -243,8 +261,21 @@ export default async function () {
     ]
   );
   targets.push(zkSyncAddress);
+  console.log("- targets[2]:", targets[2]);
   values.push(baseCostMulticall);
+  console.log("- values[2]:", values[2]);
+  console.log("  ETH value:", formatEther(values[2]));
   calldatas.push(l2MulticallData);
+  console.log("- calldatas[2]:", calldatas[2]);
+  console.log(`  ZkSync(${zkSyncAddress}).requestL2Transaction(
+    ${constants.addresses.OWNED_MULTICALL},
+    0,
+    ${multicallData},
+    ${gasLimitMulticall},
+    ${utils.REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT},
+    [],
+    ${constants.addresses.L2_GOVERNOR}
+  )`);
 
   /**
    * LAYER 2
@@ -294,13 +325,26 @@ export default async function () {
     ]
   );
   targets.push(zkSyncAddress);
+  console.log("- targets[3]:", targets[3]);
   values.push(baseCostRenounce);
+  console.log("- values[3]:", values[3]);
+  console.log("  ETH value:", formatEther(values[3]));
   calldatas.push(l2RenounceData);
+  console.log("- calldatas[3]:", calldatas[3]);
+  console.log(`  ZkSync(${zkSyncAddress}).requestL2Transaction(
+    ${constants.addresses.OWNED_MULTICALL},
+    0,
+    ${renounceData},
+    ${gasLimitRenounce},
+    ${utils.REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT},
+    [],
+    ${constants.addresses.L2_GOVERNOR}
+  )`);
 
   console.log("Step 5: Encode native ETH transfer to L2");
   const gasLimitTransfer = await wallet.provider.estimateL1ToL2Execute({
     contractAddress: constants.addresses.L2_GOVERNOR,
-    calldata: "",
+    calldata: "0x",
     caller: utils.applyL1ToL2Alias(constants.addresses.L1_TIMELOCK),
     l2Value: nativeBalance,
   });
@@ -330,29 +374,42 @@ export default async function () {
     ]
   );
   targets.push(zkSyncAddress);
+  console.log("- targets[4]:", targets[4]);
   values.push(l2Value + BigInt(baseCostTransfer)); // msg.value on L2 + base cost
+  console.log("- values[4]:", values[4]);
+  console.log("  ETH value:", formatEther(values[4]));
   calldatas.push(l2TransferData);
+  console.log("- calldatas[4]:", calldatas[4]);
+  console.log(`  ZkSync(${zkSyncAddress}).requestL2Transaction(
+    ${constants.addresses.L2_GOVERNOR},
+    ${l2Value},
+    0x,
+    ${gasLimitTransfer},
+    ${utils.REQUIRED_L1_TO_L2_GAS_PER_PUBDATA_LIMIT},
+    [],
+    ${constants.addresses.L2_GOVERNOR}
+  )`);
 
-  console.log("Step 6: Create proposal");
-  const proposalDescription = "Transfer roles, assets to new governor on Era";
+  // console.log("Step 6: Create proposal");
+  // const proposalDescription = "Transfer roles, assets to new governor on Era";
 
-  let proposalId = await governor.propose.staticCall(
-    targets,
-    values,
-    calldatas,
-    proposalDescription
-  );
-  const proposalTx = await governor.propose(
-    targets,
-    values,
-    calldatas,
-    proposalDescription
-  );
-  await proposalTx.wait();
-  console.log(`Proposal ${proposalId} created with params: `, {
-    targets: targets,
-    values: values,
-    calldatas: calldatas,
-    description: proposalDescription,
-  });
+  // let proposalId = await governor.propose.staticCall(
+  //   targets,
+  //   values,
+  //   calldatas,
+  //   proposalDescription
+  // );
+  // const proposalTx = await governor.propose(
+  //   targets,
+  //   values,
+  //   calldatas,
+  //   proposalDescription
+  // );
+  // await proposalTx.wait();
+  // console.log(`Proposal ${proposalId} created with params: `, {
+  //   targets: targets,
+  //   values: values,
+  //   calldatas: calldatas,
+  //   description: proposalDescription,
+  // });
 }
